@@ -1334,7 +1334,30 @@ for (const [name, bookDates] of bookingsByName.entries()) {
 }
 
 const avgStayDays = stayCount > 0 ? Math.round((totalStayHours / stayCount) / 24) : 0;
+    // Calculate stays
+let totalStayHours = 0;
+let stayCount = 0;
+
+for (const [name, bookDates] of bookingsByName.entries()) {
+  const relDates = releasesByName.get(name);
+  if (relDates) {
+    // Match most recent booking to most recent release
+    const lastBook = bookDates[bookDates.length - 1];
+    const lastRelease = relDates[relDates.length - 1];
     
+    if (lastRelease > lastBook) {
+      const stayMs = lastRelease - lastBook;
+      const stayHours = stayMs / (1000 * 60 * 60);
+      
+      if (stayHours > 0 && stayHours < 8760) { // Between 0 and 365 days
+        totalStayHours += stayHours;
+        stayCount++;
+      }
+    }
+  }
+}
+
+const avgStayDays = stayCount > 0 ? Math.round((totalStayHours / stayCount) / 24) : 0;
     // Get current population from roster file
     let currentPopulation = 0;
     const rosterFile = path.join(STORAGE_DIR, 'prev_roster.txt');
@@ -1382,24 +1405,36 @@ const avgStayDays = stayCount > 0 ? Math.round((totalStayHours / stayCount) / 24
     res.send('Error generating stats: ' + error.message);
   }
 });
-
 function getStatsHTML(stats) {
   const maxCharge = Math.max(...stats.commonCharges.map(c => c.count), 1);
   const maxDay = Math.max(...Object.values(stats.bookingsByDay), 1);
   
-  // ADD THIS ↓↓↓
-  const dataBanner = stats.dataCollectionStart ? `
-    <div style="background: #f0f4f8; border-left: 4px solid #3b82f6; padding: 1rem; margin-bottom: 1.5rem; border-radius: 4px;">
-      <p style="margin: 0; color: #1e293b;">
-        📊 Data collection started: <strong>${stats.dataCollectionStart}</strong> 
-        (${stats.daysOfData} days of tracking)
-      </p>
-      <p style="margin: 0.5rem 0 0 0; font-size: 0.9rem; color: #64748b;">
-        Statistics become more accurate as more data is collected over time.
-      </p>
+  // Create debug table HTML
+  const debugTable = stats.debugStays && stats.debugStays.length > 0 ? `
+    <div class="chart-container">
+      <div class="chart-title">Debug: Sample Individual Stays (${stats.totalStayCount} total calculated)</div>
+      <table style="width: 100%; border-collapse: collapse; font-size: 0.8rem;">
+        <thead>
+          <tr style="border-bottom: 2px solid #334155;">
+            <th style="text-align: left; padding: 0.5rem; color: #94b8b5;">Name</th>
+            <th style="text-align: left; padding: 0.5rem; color: #94b8b5;">Booked</th>
+            <th style="text-align: left; padding: 0.5rem; color: #94b8b5;">Released</th>
+            <th style="text-align: right; padding: 0.5rem; color: #94b8b5;">Days</th>
+          </tr>
+        </thead>
+        <tbody>
+          ${stats.debugStays.map(stay => `
+            <tr style="border-bottom: 1px solid #334155;">
+              <td style="padding: 0.5rem; color: #c590d9;">${stay.name}</td>
+              <td style="padding: 0.5rem; color: #94b8b5;">${stay.booked}</td>
+              <td style="padding: 0.5rem; color: #94b8b5;">${stay.released}</td>
+              <td style="padding: 0.5rem; color: #c590d9; text-align: right; font-weight: bold;">${stay.stayDays}</td>
+            </tr>
+          `).join('')}
+        </tbody>
+      </table>
     </div>
   ` : '';
-  // ↑↑↑ END OF NEW SECTION
   
   return `<!DOCTYPE html>
 <html>
@@ -1414,17 +1449,17 @@ function getStatsHTML(stats) {
       font-family: Arial, sans-serif; 
       font-size: 9pt; 
       background: #181818; 
-      color: #00ffcf; 
+      color: #c590d9; 
       min-height: 100vh; 
       padding: 2rem; 
     }
     .container { max-width: 1200px; margin: 0 auto; }
     h1 { 
-      font-family: 'Pixel Digivolve', 'Courier New', monospace; 
+      font-family: 'Noto Serif', sans-serif; 
       font-size: 2rem; 
       margin-bottom: 0.5rem; 
       color: #b8b8b8; 
-      letter-spacing: -1px; 
+      letter-spacing: -4px; 
     }
     .subtitle { color: #4c6e60; margin-bottom: 2rem; }
     .back-link { 
@@ -1454,7 +1489,7 @@ function getStatsHTML(stats) {
     .stat-value { 
       font-size: 2.5rem; 
       font-weight: bold; 
-      color: #00ffcf; 
+      color: #c590d9; 
       margin-bottom: 0.25rem;
     }
     .stat-label { 
@@ -1492,7 +1527,7 @@ function getStatsHTML(stats) {
       white-space: nowrap;
     }
     .bar-fill { 
-      background: linear-gradient(90deg, #5f8a2f, #00ffcf); 
+      background: linear-gradient(90deg, #5f8a2f, #c590d9); 
       height: 24px; 
       border-radius: 4px; 
       display: flex; 
@@ -1535,29 +1570,6 @@ function getStatsHTML(stats) {
       font-size: 0.75rem; 
       margin-top: 0.5rem; 
     }
-    
-    .release-types { 
-      display: grid; 
-      grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); 
-      gap: 1rem; 
-      margin-top: 1rem;
-    }
-    .release-type { 
-      background: #1a1a1a; 
-      padding: 1rem; 
-      border-radius: 8px; 
-      text-align: center;
-    }
-    .release-type-count { 
-      font-size: 1.5rem; 
-      font-weight: bold; 
-      color: #00ffcf; 
-    }
-    .release-type-label { 
-      color: #4c6e60; 
-      font-size: 0.75rem; 
-      margin-top: 0.25rem;
-    }
 
     .time-series {
       display: flex;
@@ -1568,7 +1580,7 @@ function getStatsHTML(stats) {
     }
     .time-bar {
       flex: 1;
-      background: linear-gradient(180deg, #353726, #00ffcf);
+      background: linear-gradient(180deg, #353726, #c590d9);
       border-radius: 2px 2px 0 0;
       position: relative;
       min-width: 8px;
@@ -1602,6 +1614,8 @@ function getStatsHTML(stats) {
         <div class="stat-label">Average Length of Stay</div>
       </div>
     </div>
+
+    ${debugTable}
 
     <div class="chart-container">
       <div class="chart-title">Bookings Over Last 30 Days</div>
@@ -1648,7 +1662,7 @@ function getStatsHTML(stats) {
 </html>`;
 }
 
-// ... all your other routes above ...
+// ... ^^this is where the getstats html ends ...
 
 app.get('/api/delete-logs', async (req, res) => {
   const fs = require('fs').promises;
@@ -1801,8 +1815,8 @@ app.post('/api/admin/merge-logs', (req, res) => {
   try {
     let body = '';
     
-    req.on('data', chunk => {
-      body += chunk.toString();
+    req.on('data', chuSnk => {
+      body += chunk.totring();
     });
     
     req.on('end', () => {
