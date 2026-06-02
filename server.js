@@ -2464,9 +2464,10 @@ app.get('/api/deepstats', async (req, res) => {
           if (bail > bailByCharge[charge].max) bailByCharge[charge].max = bail;
         }
         if (mins > 0 && mins < 525600) {
-          if (!timeByCharge[charge]) timeByCharge[charge] = { totalMins:0, count:0 };
+          if (!timeByCharge[charge]) timeByCharge[charge] = { totalMins:0, count:0, allMins:[] };
           timeByCharge[charge].totalMins += mins;
           timeByCharge[charge].count++;
+          timeByCharge[charge].allMins.push(mins);
         }
         if (!rtByCharge[charge]) rtByCharge[charge] = {};
         rtByCharge[charge][type] = (rtByCharge[charge][type] || 0) + 1;
@@ -2589,7 +2590,12 @@ function getDeepStatsHTML(d) {
     .sort((a,b) => b.max - a.max).slice(0, 12);
 
   const timeByChargeArr = Object.entries(d.timeByCharge)
-    .map(([charge, s]) => ({ charge, avgMins: Math.round(s.totalMins/s.count), count: s.count }))
+    .map(([charge, s]) => {
+      const sorted = [...s.allMins].sort((a,b) => a-b);
+      const mid = Math.floor(sorted.length/2);
+      const medianMins = sorted.length % 2 === 0 ? Math.round((sorted[mid-1]+sorted[mid])/2) : sorted[mid];
+      return { charge, avgMins: Math.round(s.totalMins/s.count), medianMins, count: s.count };
+    })
     .sort((a,b) => b.count - a.count);
 
   const rtByChargeArr = Object.entries(d.rtByCharge)
@@ -2720,15 +2726,16 @@ function getDeepStatsHTML(d) {
     ${bailByChargeArr.length === 0 ? '<tr><td colspan="4" class="dim">No data yet</td></tr>' : ''}
   </table>
 
-  <h2>Average Time Served by Charge</h2>
+  <h2>Time Served by Charge</h2>
   <table>
-    <tr><th>Charge</th><th>Avg Time Served</th><th>Count</th></tr>
+    <tr><th>Charge</th><th>Mean</th><th>Median</th><th>Count</th></tr>
     ${timeByChargeArr.map(r => `<tr>
       <td>${r.charge}</td>
       <td class="val">${formatMinutes(r.avgMins)}</td>
+      <td class="val">${formatMinutes(r.medianMins)}</td>
       <td class="dim">${r.count}</td>
     </tr>`).join('')}
-    ${timeByChargeArr.length === 0 ? '<tr><td colspan="3" class="dim">No data yet</td></tr>' : ''}
+    ${timeByChargeArr.length === 0 ? '<tr><td colspan="4" class="dim">No data yet</td></tr>' : ''}
   </table>
 
   <h2>Release Type by Charge</h2>
