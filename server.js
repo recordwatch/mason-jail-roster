@@ -1872,11 +1872,14 @@ const avgStayDays = stayCount > 0 ? Math.round((totalStayHours / stayCount) / 24
     }
 
     // Time served stats (precise, from PDF data)
-    let avgTimeServedMins = 0, minTimeServedMins = 0, maxTimeServedMins = 0;
+    let avgTimeServedMins = 0, medianTimeServedMins = 0, minTimeServedMins = 0, maxTimeServedMins = 0;
     if (historyTimeMinutes.length > 0) {
       avgTimeServedMins = Math.round(historyTimeMinutes.reduce((a, b) => a + b, 0) / historyTimeMinutes.length);
       minTimeServedMins = Math.min(...historyTimeMinutes);
       maxTimeServedMins = Math.max(...historyTimeMinutes);
+      const sorted = [...historyTimeMinutes].sort((a, b) => a - b);
+      const mid = Math.floor(sorted.length / 2);
+      medianTimeServedMins = sorted.length % 2 === 0 ? Math.round((sorted[mid - 1] + sorted[mid]) / 2) : sorted[mid];
     }
 
     // Longest current inmate (from roster)
@@ -1963,6 +1966,7 @@ const avgStayDays = stayCount > 0 ? Math.round((totalStayHours / stayCount) / 24
       totalBailThisMonth,
       avgBailByCharge,
       avgTimeServedMins,
+      medianTimeServedMins,
       minTimeServedMins,
       maxTimeServedMins,
       longestInmate,
@@ -2317,7 +2321,11 @@ function getStatsHTML(stats) {
       <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 1rem; margin-top: 1rem;">
         <div style="background: #0E1C1A; padding: 1rem; border-radius: 8px; text-align: center;">
           <div style="font-size: 1.5rem; font-weight: bold; color: #C4D8E6; font-family: 'Playfair Display', Georgia, serif;">${formatMinutes(stats.avgTimeServedMins)}</div>
-          <div style="color: #6A8A96; font-size: 0.75rem; margin-top: 0.25rem;">Average Time Served</div>
+          <div style="color: #6A8A96; font-size: 0.75rem; margin-top: 0.25rem;">Mean Time Served</div>
+        </div>
+        <div style="background: #0E1C1A; padding: 1rem; border-radius: 8px; text-align: center;">
+          <div style="font-size: 1.5rem; font-weight: bold; color: #C4D8E6; font-family: 'Playfair Display', Georgia, serif;">${formatMinutes(stats.medianTimeServedMins)}</div>
+          <div style="color: #6A8A96; font-size: 0.75rem; margin-top: 0.25rem;">Median Time Served</div>
         </div>
         <div style="background: #0E1C1A; padding: 1rem; border-radius: 8px; text-align: center;">
           <div style="font-size: 1.5rem; font-weight: bold; color: #C4D8E6; font-family: 'Playfair Display', Georgia, serif;">${formatMinutes(stats.minTimeServedMins)}</div>
@@ -2468,17 +2476,23 @@ app.get('/api/deepstats', async (req, res) => {
     // ── Time served ───────────────────────────────────────────────────────────
     let under24=0, over24=0, histMaxMins=0, histMaxEntry=null;
     let histMinMins=Infinity, histMinEntry=null;
+    const allServedMins = [];
     for (const e of history) {
       const ts = (e.timeServed || '').match(/(\d+)d(\d+)h(\d+)m/);
       if (ts) {
         const m = parseInt(ts[1])*1440 + parseInt(ts[2])*60 + parseInt(ts[3]);
         if (m > 0 && m < 525600) {
+          allServedMins.push(m);
           if (m < 1440) under24++; else over24++;
           if (m > histMaxMins) { histMaxMins = m; histMaxEntry = e; }
           if (m < histMinMins) { histMinMins = m; histMinEntry = e; }
         }
       }
     }
+    const histMeanMins = allServedMins.length > 0 ? Math.round(allServedMins.reduce((a,b)=>a+b,0)/allServedMins.length) : 0;
+    const _sorted = [...allServedMins].sort((a,b)=>a-b);
+    const _mid = Math.floor(_sorted.length/2);
+    const histMedianMins = _sorted.length === 0 ? 0 : _sorted.length % 2 === 0 ? Math.round((_sorted[_mid-1]+_sorted[_mid])/2) : _sorted[_mid];
 
     // ── Frequent flyers ───────────────────────────────────────────────────────
     const nameCounts = {};
@@ -2542,6 +2556,7 @@ app.get('/api/deepstats', async (req, res) => {
       under24, over24,
       histMaxMins, histMaxEntry,
       histMinMins: histMinMins === Infinity ? 0 : histMinMins, histMinEntry,
+      histMeanMins, histMedianMins,
       frequentFlyers,
       relDays, relHours, bookDays, bookHours,
       currentLongest,
@@ -2730,6 +2745,14 @@ function getDeepStatsHTML(d) {
 
   <h2>Time Served Statistics</h2>
   <div class="cards">
+    ${d.histMeanMins > 0 ? `<div class="card">
+      <div class="v" style="font-size:1.2rem;">${formatMinutes(d.histMeanMins)}</div>
+      <div class="l">Mean Time Served</div>
+    </div>` : ''}
+    ${d.histMedianMins > 0 ? `<div class="card">
+      <div class="v" style="font-size:1.2rem;">${formatMinutes(d.histMedianMins)}</div>
+      <div class="l">Median Time Served</div>
+    </div>` : ''}
     <div class="card">
       <div class="v">${d.under24 + d.over24 > 0 ? pct(d.under24, d.under24+d.over24) : '—'}</div>
       <div class="l">Released in &lt;24 Hours</div>
