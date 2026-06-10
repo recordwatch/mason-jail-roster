@@ -1396,11 +1396,14 @@ app.get('/api/history', (req, res) => {
     const time = timeMatch ? timeMatch[1] : '';
     const chargesMatch = line.match(/Charges:\s+(.+)$/);
     const charges = chargesMatch ? chargesMatch[1].trim() : '';
-    const timeServedMatch = line.match(/Time served:\s+([^|]+)/);
+    const timeServedMatch = line.match(/Time served:\s+([^|(]+)/);
     const timeServed = timeServedMatch ? timeServedMatch[1].trim() : '';
-    const bailMatch = line.match(/Bail Posted:\s+([^|]+)/);
+    const bailMatch = line.match(/Bail Posted:\s+(\$[\d,]+\.\d{2})/);
     const bail = bailMatch ? bailMatch[1].trim() : '';
-    const extra = [timeServed ? 'Served: ' + timeServed : '', bail ? 'Bail: ' + bail : ''].filter(Boolean).join(' · ');
+    const releaseParenMatch = line.match(/\(([^)]+)\)/);
+    const releaseRaw = releaseParenMatch ? releaseParenMatch[1].trim() : '';
+    const releaseLabel = releaseRaw ? (RELEASE_TYPE_NAMES[releaseRaw] || releaseRaw) : '';
+    const extra = [timeServed ? 'Served: ' + timeServed : '', bail ? 'Bail: ' + bail : '', releaseLabel].filter(Boolean).join(' · ');
     return '<details class="inmate-row">' +
       '<summary>' +
       '<span class="inmate-name">' + namePart + '</span>' +
