@@ -263,7 +263,7 @@ function formatReleased(b, stats, isPending = false) {
       text: b.name + " | Released: " + releaseInfo.releaseDateTime +
             " | Time served: " + timeServedStr +
             bailText +
-            " (" + releaseInfo.releaseType + ")" +
+            " (" + (RELEASE_TYPE_NAMES[releaseInfo.releaseType] || releaseInfo.releaseType) + ")" +
             " | Charges: " + chargeText,
       hasPendingDetails: false
     };
