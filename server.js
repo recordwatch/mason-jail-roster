@@ -818,10 +818,6 @@ if (fs.existsSync(logFile)) {
     <h1>Washington Jail Data</h1>
     <div class="stats-bar">
       <div>
-        <div class="stats-bar-value">${inmateCount}</div>
-        <div class="stats-bar-label">Currently in Custody</div>
-      </div>
-      <div>
         <div class="stats-bar-value">${lastCheck !== "Never" ? formatDatePST(new Date(lastCheck)) : "Never"}</div>
         <div class="stats-bar-label">Last Updated</div>
       </div>
