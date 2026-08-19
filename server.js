@@ -822,6 +822,7 @@ if (fs.existsSync(logFile)) {
       <a href="/api/history" class="nav-btn">Mason County Jail Roster Monitor</a>
       <a href="https://theonlytacocat.github.io/ksco-scraper/" target="_blank" rel="noopener noreferrer" class="nav-btn">Visit Kitsap County Jail Monitor</a>
       <a href="https://theonlytacocat.github.io/pierce-jail-roster/" target="_blank" rel="noopener noreferrer" class="nav-btn">Visit Pierce County Jail Monitor</a>
+      <a href="https://theonlytacocat.github.io/thurston-jail-roster/" target="_blank" rel="noopener noreferrer" class="nav-btn">Visit Thurston County Jail Monitor</a>
     </div>
     <details class="status">
       <summary>
