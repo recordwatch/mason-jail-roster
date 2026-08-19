@@ -1477,15 +1477,14 @@ app.get('/api/history', (req, res) => {
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
     html, body { overflow-x: hidden; width: 100%; }
     body { font-family: 'Inter', Arial, sans-serif; font-size: 8pt; background: #152220; color: #C4D8E6; min-height: 100vh; }
-    .page-header { padding: 1.5rem 2rem 0; display: flex; justify-content: space-between; align-items: center; }
+    .page-header { display: flex; justify-content: space-between; align-items: center; }
     .county-label { font-size: 0.7rem; font-weight: 600; letter-spacing: 2px; text-transform: uppercase; color: #A8C4D0; }
     .public-records { font-size: 0.7rem; font-weight: 500; letter-spacing: 1px; text-transform: uppercase; color: #6A8A96; }
-    .title-section { padding: 0.75rem 2rem 0; }
-    h1 { font-family: 'Playfair Display', Georgia, serif; font-size: 2.5rem; font-weight: 700; color: #F5F0E8; letter-spacing: -0.5px; }
+    h1 { font-family: 'Playfair Display', Georgia, serif; font-size: 2.5rem; font-weight: 700; color: #F5F0E8; letter-spacing: -0.5px; margin: 0.75rem 0 1rem; }
     .nav-bar { display: flex; gap: 0.5rem; margin-bottom: 1.25rem; }
     .nav-btn { padding: 0.5rem 1rem; background: #1A3035; color: #C4D8E6; border-radius: 6px; text-decoration: none; font-weight: 600; font-size: 8pt; border: 1px solid #22443A; transition: background 0.15s; }
     .nav-btn:hover { background: #1D4A5C; color: #F5F0E8; }
-    .container { max-width: 900px; margin: 0 auto; padding: 1rem 2rem 3rem; }
+    .container { max-width: 900px; margin: 0 auto; padding: 1.5rem 2rem 3rem; }
     .date-group { margin-bottom: 2rem; }
     .date-label { font-size: 0.7rem; font-weight: 600; letter-spacing: 2px; text-transform: uppercase; color: #4B8FA8; padding-bottom: 0.5rem; border-bottom: 1px solid #22443A; margin-bottom: 0.75rem; }
     .section-label { font-size: 0.65rem; font-weight: 700; letter-spacing: 2px; text-transform: uppercase; margin: 0.75rem 0 0.4rem; }
@@ -1515,14 +1514,12 @@ app.get('/api/history', (req, res) => {
   </style>
 </head>
 <body>
-  <div class="page-header">
-    <span class="county-label">Mason County</span>
-    <span class="public-records">Public Records — Sheriff's Office</span>
-  </div>
-  <div class="title-section">
-    <h1>Jail Roster Monitor</h1>
-  </div>
   <div class="container">
+    <div class="page-header">
+      <span class="county-label">Mason County</span>
+      <span class="public-records">Public Records — Sheriff's Office</span>
+    </div>
+    <h1>Jail Roster Monitor</h1>
     <div class="nav-bar">
       <a href="/api/status" class="nav-btn">← Washington Jail Data</a>
       <a href="/api/stats" class="nav-btn">Statistics →</a>
