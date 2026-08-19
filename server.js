@@ -771,7 +771,7 @@ if (fs.existsSync(logFile)) {
   gtag('config', 'G-D2LNWC78X7');
 </script>
 
-  <title>Mason County Jail Roster Monitor</title>
+  <title>Washington Jail Data</title>
   <!-- build:9b75fde -->
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
@@ -807,7 +807,7 @@ if (fs.existsSync(logFile)) {
 </head>
 <body>
   <div class="container">
-    <h1><span>Mason County Jail Roster Monitor</span></h1>
+    <h1><span>Washington Jail Data</span></h1>
     <a href="/api/history" class="run-btn">Jail Bookings and Release Log</a>
     <a href="/api/stats" class="run-btn" style="margin-top: 0.75rem;">Statistics Dashboard</a>
     <a href="https://theonlytacocat.github.io/ksco-scraper/" target="_blank" rel="noopener noreferrer" class="run-btn" style="margin-top: 0.75rem;">Visit Kitsap County Jail Monitor</a>
@@ -1452,7 +1452,7 @@ app.get('/api/history', (req, res) => {
   gtag('config', 'G-380L7KND2L');
 </script>
 
-  <title>Booked and Released Log - Mason County Jail Roster Monitor</title>
+  <title>Booked and Released Log - Washington Jail Data</title>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -2054,7 +2054,7 @@ function getStatsHTML(stats) {
   return `<!DOCTYPE html>
 <html>
 <head>
-  <title>Statistics Dashboard - Mason County Jail</title>
+  <title>Statistics Dashboard - Washington Jail Data</title>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -2635,7 +2635,7 @@ function getDeepStatsHTML(d) {
   return `<!DOCTYPE html>
 <html>
 <head>
-  <title>Deep Stats — Mason County Jail</title>
+  <title>Deep Stats — Washington Jail Data</title>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width,initial-scale=1">
   <link rel="preconnect" href="https://fonts.googleapis.com">
