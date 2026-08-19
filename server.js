@@ -767,78 +767,101 @@ if (fs.existsSync(logFile)) {
   window.dataLayer = window.dataLayer || [];
   function gtag(){dataLayer.push(arguments);}
   gtag('js', new Date());
-
   gtag('config', 'G-D2LNWC78X7');
 </script>
-
   <title>Washington Jail Data</title>
-  <!-- build:9b75fde -->
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,600;0,700;1,400&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;700&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
   <style>
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
     html, body { overflow-x: hidden; width: 100%; }
-    body { font-family: 'Inter', Arial, sans-serif; font-size: 8pt; background: #152220; color: #C4D8E6; min-height: 100vh; display: flex; align-items: center; justify-content: center; padding: 0.5rem; }
-    .container { width: 100%; max-width: 500px; padding: 1rem; }
-    h1 { font-family: 'Pixel Digivolve', 'Courier New', monospace; font-size: 2rem; margin-bottom: 1.5rem; color: #F5F0E8; letter-spacing: -1px; overflow: hidden; white-space: nowrap; }
-    h1 span { display: inline-block; animation: ticker 15s linear infinite; }
-    @keyframes ticker { 0% { transform: translateX(100%); } 100% { transform: translateX(-100%); } }
-    .status { background: #1A3035; border-radius: 12px; padding: 1.25rem 1.5rem; margin-bottom: 1rem; }
-    .status summary { display: flex; align-items: center; gap: 0.5rem; cursor: pointer; list-style: none; padding: 0.25rem 0; }
-    .status summary::-webkit-details-marker { display: none; }
-    .status-dot { width: 10px; height: 10px; background: #22C55E; border-radius: 50%; animation: pulse 2s infinite; flex-shrink: 0; }
+    body { font-family: 'Inter', Arial, sans-serif; font-size: 8pt; background: #152220; color: #C4D8E6; min-height: 100vh; }
+    .page-header { padding: 1.5rem 2rem 0; display: flex; justify-content: space-between; align-items: center; }
+    .county-label { font-size: 0.7rem; font-weight: 600; letter-spacing: 2px; text-transform: uppercase; color: #A8C4D0; }
+    .public-records { font-size: 0.7rem; font-weight: 500; letter-spacing: 1px; text-transform: uppercase; color: #6A8A96; }
+    .title-section { padding: 0.75rem 2rem 1.25rem; }
+    h1 { font-family: 'Playfair Display', Georgia, serif; font-size: 3rem; font-weight: 700; color: #F5F0E8; letter-spacing: -1px; line-height: 1.1; }
+    .stats-bar { background: #1A3035; border-top: 1px solid #22443A; border-bottom: 1px solid #22443A; padding: 1rem 2rem; display: flex; gap: 3rem; }
+    .stats-bar-value { font-size: 1.4rem; font-weight: 600; color: #4B8FA8; }
+    .stats-bar-label { font-size: 0.6rem; letter-spacing: 1.5px; text-transform: uppercase; color: #6A8A96; margin-top: 0.15rem; }
+    .nav-section { padding: 1.25rem 2rem; display: flex; flex-direction: column; gap: 0.5rem; }
+    .nav-btn { display: block; padding: 0.85rem 1.25rem; background: #1A3035; color: #C4D8E6; border-radius: 6px; text-decoration: none; font-weight: 600; font-size: 9pt; border: 1px solid #22443A; transition: background 0.15s; }
+    .nav-btn:hover { background: #1D4A5C; color: #F5F0E8; }
+    .system-section { padding: 0 2rem; }
+    details.status { background: #1A3035; border-radius: 6px; border: 1px solid #22443A; overflow: hidden; }
+    details.status > summary { display: flex; align-items: center; gap: 0.5rem; cursor: pointer; list-style: none; padding: 0.85rem 1.25rem; }
+    details.status > summary::-webkit-details-marker { display: none; }
+    .status-dot { width: 8px; height: 8px; background: #22C55E; border-radius: 50%; animation: pulse 2s infinite; flex-shrink: 0; }
     @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.4; } }
     .status-title { font-weight: 600; color: #F5F0E8; font-size: 9pt; flex: 1; }
-    .status-chevron { color: #6A8A96; font-size: 0.7rem; margin-left: auto; transition: transform 0.2s; }
+    .status-chevron { color: #6A8A96; font-size: 0.7rem; transition: transform 0.2s; }
     details.status[open] .status-chevron { transform: rotate(180deg); }
-    .stats { display: grid; gap: 0; margin-top: 0.75rem; border-top: 1px solid #1E3840; padding-top: 0.25rem; }
-    .stat { display: flex; justify-content: space-between; padding: 0.55rem 0; border-bottom: 1px solid #1E3840; }
-    .stat:last-child { border-bottom: none; }
-    .stat-label { color: #A8C4D0; }
-    .stat-value { font-weight: 500; color: #F5F0E8; }
-    .run-btn { display: block; width: 100%; padding: 0.75rem; margin-top: 1rem; background: #1A3035; color: #C4D8E6; text-align: center; border-radius: 8px; text-decoration: none; font-weight: 600; font-family: 'Inter', Arial, sans-serif; transition: background 0.15s; }
-    .run-btn:hover { background: #1D4A5C; color: #F5F0E8; }
-    .footer { text-align: center; color: #6A8A96; font-size: 0.875rem; margin-top: 1.5rem; }
+    .stats-grid { display: grid; grid-template-columns: 1fr 1fr; border-top: 1px solid #22443A; }
+    .stat { padding: 0.7rem 1.25rem; border-bottom: 1px solid #22443A; border-right: 1px solid #22443A; }
+    .stat:nth-child(even) { border-right: none; }
+    .stat:nth-last-child(-n+2) { border-bottom: none; }
+    .stat-label { font-size: 0.6rem; letter-spacing: 1px; text-transform: uppercase; color: #6A8A96; }
+    .stat-value { font-weight: 600; color: #F5F0E8; font-size: 9pt; margin-top: 0.1rem; }
+    .footer { padding: 1.25rem 2rem 2rem; }
     a { color: #4B8FA8; text-decoration: none; }
+    @media (max-width: 600px) { h1 { font-size: 2rem; } .stats-bar { gap: 1.5rem; } .page-header { flex-direction: column; align-items: flex-start; gap: 0.2rem; } }
   </style>
 </head>
 <body>
-  <div class="container">
-    <h1><span>Washington Jail Data</span></h1>
-    <a href="/api/history" class="run-btn">Mason County Jail Roster Monitor</a>
-    <a href="https://theonlytacocat.github.io/ksco-scraper/" target="_blank" rel="noopener noreferrer" class="run-btn" style="margin-top: 0.75rem;">Visit Kitsap County Jail Monitor</a>
-    <a href="https://theonlytacocat.github.io/pierce-jail-roster/" target="_blank" rel="noopener noreferrer" class="run-btn" style="margin-top: 0.75rem;">Visit Pierce County Jail Monitor</a>
-    <details class="status" style="margin-top: 1rem;">
+  <div class="page-header">
+    <span class="county-label">Mason County</span>
+    <span class="public-records">Public Records — Sheriff's Office</span>
+  </div>
+  <div class="title-section">
+    <h1>Washington Jail Data</h1>
+  </div>
+  <div class="stats-bar">
+    <div>
+      <div class="stats-bar-value">${inmateCount}</div>
+      <div class="stats-bar-label">Currently in Custody</div>
+    </div>
+    <div>
+      <div class="stats-bar-value">${lastCheck !== "Never" ? formatDatePST(new Date(lastCheck)) : "Never"}</div>
+      <div class="stats-bar-label">Last Updated</div>
+    </div>
+  </div>
+  <div class="nav-section">
+    <a href="/api/history" class="nav-btn">Mason County Jail Roster Monitor</a>
+    <a href="https://theonlytacocat.github.io/ksco-scraper/" target="_blank" rel="noopener noreferrer" class="nav-btn">Visit Kitsap County Jail Monitor</a>
+    <a href="https://theonlytacocat.github.io/pierce-jail-roster/" target="_blank" rel="noopener noreferrer" class="nav-btn">Visit Pierce County Jail Monitor</a>
+  </div>
+  <div class="system-section">
+    <details class="status">
       <summary>
         <div class="status-dot"></div>
         <span class="status-title">System Active</span>
         <span class="status-chevron">▾</span>
       </summary>
-      <div class="stats">
+      <div class="stats-grid">
         <div class="stat">
-          <span class="stat-label">Last Check</span>
-          <span class="stat-value">${lastCheck !== "Never" ? formatDatePST(new Date(lastCheck)) : "Never"}</span>
+          <div class="stat-label">Last Check</div>
+          <div class="stat-value">${lastCheck !== "Never" ? formatDatePST(new Date(lastCheck)) : "Never"}</div>
         </div>
         <div class="stat">
-          <span class="stat-label">Current Inmates</span>
-          <span class="stat-value">${inmateCount}</span>
+          <div class="stat-label">Current Inmates</div>
+          <div class="stat-value">${inmateCount}</div>
         </div>
         <div class="stat">
-          <span class="stat-label">Changes Detected</span>
-          <span class="stat-value">${changeCount}</span>
+          <div class="stat-label">Changes Detected</div>
+          <div class="stat-value">${changeCount}</div>
         </div>
         <div class="stat">
-          <span class="stat-label">Page Views</span>
-          <span class="stat-value">${viewCount.toLocaleString()}</span>
+          <div class="stat-label">Page Views</div>
+          <div class="stat-value">${viewCount.toLocaleString()}</div>
         </div>
       </div>
     </details>
-    <div class="footer">
-      <a href="/legislative" style="display: inline-block; margin-top: 1rem; padding: 0.5rem 1rem; background: #1A3035; color: #C4D8E6; border: 1px solid #0B607C; border-radius: 6px; text-decoration: none; font-size: 0.75rem;">March 13th 2026: FINAL WA Legislative Session Update</a>
-    </div>
+  </div>
+  <div class="footer">
+    <a href="/legislative" style="display: inline-block; padding: 0.5rem 1rem; background: #1A3035; color: #C4D8E6; border: 1px solid #22443A; border-radius: 6px; text-decoration: none; font-size: 0.75rem;">March 13th 2026: FINAL WA Legislative Session Update</a>
   </div>
 </body>
 </html>`;
@@ -1388,7 +1411,7 @@ app.get('/api/history', (req, res) => {
     console.error('History parse error:', e);
   }
 
-  function buildInmateRow(line) {
+  function buildInmateRow(line, type = 'booked') {
     const namePart = line.split(' | ')[0] || 'Unknown';
     const timeMatch = line.match(/(?:Booked|Released):\s+(\d{2}\/\d{2}\/\d{2}\s+\d{2}:\d{2}:\d{2})/);
     const time = timeMatch ? timeMatch[1] : '';
@@ -1401,114 +1424,106 @@ app.get('/api/history', (req, res) => {
     const releaseParenMatch = line.match(/\(([^)]+)\)/);
     const releaseRaw = releaseParenMatch ? releaseParenMatch[1].trim() : '';
     const releaseLabel = releaseRaw ? (RELEASE_TYPE_NAMES[releaseRaw] || releaseRaw) : '';
-    const extra = [timeServed ? 'Served: ' + timeServed : '', bail ? 'Bail: ' + bail : '', releaseLabel].filter(Boolean).join(' · ');
+    const badgeClass = type === 'released' ? 'badge-released' : 'badge-booked';
+    const badgeText = type === 'released' ? 'RELEASED' : 'BOOKED';
+    let detailRows = '';
+    if (charges) detailRows += '<div class="detail-row"><span class="detail-label">Charges</span><span class="detail-value">' + charges + '</span></div>';
+    if (timeServed) detailRows += '<div class="detail-row"><span class="detail-label">Served</span><span class="detail-value">' + timeServed + '</span></div>';
+    if (bail) detailRows += '<div class="detail-row"><span class="detail-label">Bail</span><span class="detail-value">' + bail + '</span></div>';
+    if (releaseLabel) detailRows += '<div class="detail-row"><span class="detail-label">Release</span><span class="detail-value">' + releaseLabel + '</span></div>';
     return '<details class="inmate-row">' +
       '<summary>' +
       '<span class="inmate-name">' + namePart + '</span>' +
       (time ? '<span class="inmate-time">' + time + '</span>' : '') +
+      '<span class="status-badge ' + badgeClass + '">' + badgeText + '</span>' +
+      '<span class="chevron">▾</span>' +
       '</summary>' +
-      '<div class="inmate-details-content">' +
-      (charges ? '<div class="inmate-charges">' + charges + '</div>' : '') +
-      (extra ? '<div class="inmate-extra">' + extra + '</div>' : '') +
-      '</div>' +
+      (detailRows ? '<div class="inmate-details">' + detailRows + '</div>' : '') +
       '</details>';
   }
 
   const entriesHtml = entries.length > 0 ? entries.map(entry => {
     const [month, day, year] = entry.date.split('/');
     const displayDate = `${month}/${day}/20${year}`;
-
     const bookedHtml = entry.booked.length > 0 ?
-      '<div class="changes booked"><h4>BOOKED (' + entry.booked.length + ')</h4><div class="inmate-list">' +
-      entry.booked.map(b => buildInmateRow(b)).join('') +
-      '</div></div>' : '';
-
+      '<div class="section-label booked">Booked (' + entry.booked.length + ')</div>' +
+      entry.booked.map(b => buildInmateRow(b, 'booked')).join('') : '';
     const releasedHtml = entry.released.length > 0 ?
-      '<div class="changes released"><h4>RELEASED (' + entry.released.length + ')</h4><div class="inmate-list">' +
-      entry.released.map(r => buildInmateRow(r)).join('') +
-      '</div></div>' : '';
-
-    const changesGrid = (bookedHtml && releasedHtml)
-      ? '<div class="changes-grid">' + bookedHtml + releasedHtml + '</div>'
-      : bookedHtml + releasedHtml;
-    return '<div class="entry"><div class="entry-header">' + displayDate + '</div>' +
-           changesGrid + '</div>';
+      '<div class="section-label released">Released (' + entry.released.length + ')</div>' +
+      entry.released.map(r => buildInmateRow(r, 'released')).join('') : '';
+    return '<div class="date-group"><div class="date-label">' + displayDate + '</div>' +
+           bookedHtml + releasedHtml + '</div>';
   }).join('') :
   '<p class="no-data">No changes recorded yet. Run the workflow to start monitoring.</p>';
 
   const html = `<!DOCTYPE html>
 <html>
 <head>
-
 <!-- Google tag (gtag.js) -->
 <script async src="https://www.googletagmanager.com/gtag/js?id=G-380L7KND2L"></script>
 <script>
   window.dataLayer = window.dataLayer || [];
   function gtag(){dataLayer.push(arguments);}
   gtag('js', new Date());
-
   gtag('config', 'G-380L7KND2L');
 </script>
-
   <title>Booked and Released Log - Washington Jail Data</title>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,600;0,700;1,400&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;700&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
   <style>
-    @font-face { font-family: 'Fake Receipt'; src: url('/fonts/FakeReceipt.otf') format('opentype'); font-weight: normal; font-style: normal; }
-    * { box-sizing: border-box; margin: 0; padding: 0; }
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
     html, body { overflow-x: hidden; width: 100%; }
-    body { font-family: 'Inter', Arial, sans-serif; font-size: 8pt; background: #152220; color: #C4D8E6; min-height: 100vh; padding: 2rem; }
-    .container { max-width: 1100px; margin: 0 auto; }
-    h1 { font-family: 'Playfair Display', Georgia, serif; font-size: 2.5rem; margin-bottom: 0.5rem; color: #F5F0E8; letter-spacing: -0.5px; word-break: break-word; font-weight: 700; }
-    .subtitle { color: #6A8A96; margin-bottom: 1.5rem; }
-    .nav-buttons { display: flex; gap: 0.75rem; margin-bottom: 1.5rem; }
-    .nav-btn { flex: 1; padding: 0.65rem 1rem; background: #1A3035; color: #C4D8E6; text-align: center; border-radius: 8px; text-decoration: none; font-weight: 600; font-size: 9pt; transition: background 0.15s; }
+    body { font-family: 'Inter', Arial, sans-serif; font-size: 8pt; background: #152220; color: #C4D8E6; min-height: 100vh; }
+    .page-header { padding: 1.5rem 2rem 0; display: flex; justify-content: space-between; align-items: center; }
+    .county-label { font-size: 0.7rem; font-weight: 600; letter-spacing: 2px; text-transform: uppercase; color: #A8C4D0; }
+    .public-records { font-size: 0.7rem; font-weight: 500; letter-spacing: 1px; text-transform: uppercase; color: #6A8A96; }
+    .title-section { padding: 0.75rem 2rem 0.5rem; }
+    h1 { font-family: 'Playfair Display', Georgia, serif; font-size: 2.5rem; font-weight: 700; color: #F5F0E8; letter-spacing: -0.5px; }
+    .nav-bar { display: flex; gap: 0.5rem; padding: 1rem 2rem 1.5rem; }
+    .nav-btn { padding: 0.5rem 1rem; background: #1A3035; color: #C4D8E6; border-radius: 6px; text-decoration: none; font-weight: 600; font-size: 8pt; border: 1px solid #22443A; transition: background 0.15s; }
     .nav-btn:hover { background: #1D4A5C; color: #F5F0E8; }
-    .entry { background: #1A3035; border-radius: 12px; padding: 1rem; margin-bottom: 1rem; }
-    .entry.no-change-entry { background: #0E1C1A; padding: 0.75rem; border-left: 3px solid #1E3840; }
-    .entry-header { font-family: 'Playfair Display', Georgia, serif; font-weight: 600; font-size: 11pt; margin-bottom: 0.75rem; color: #C4D8E6; border-bottom: 1px solid #1E3840; padding-bottom: 0.5rem; }
-    .changes-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin-top: 0.75rem; }
-    @media (max-width: 600px) { .changes-grid { grid-template-columns: 1fr; } }
-    .changes { }
-    .changes h4 { font-family: 'Inter', Arial, sans-serif; font-size: 9pt; margin-bottom: 0.4rem; font-weight: 600; letter-spacing: 0.5px; text-transform: uppercase; }
-    .changes.booked { border-left: 3px solid #4B8FA8; padding-left: 0.6rem; }
-    .changes.booked h4 { color: #4B8FA8; }
-    .changes.released { border-left: 3px solid #0B607C; padding-left: 0.6rem; }
-    .changes.released h4 { color: #5AAAC8; }
-    .changes.updated { border-left: 3px solid #4B8FA8; padding-left: 0.6rem; }
-    .changes.updated h4 { color: #4B8FA8; }
-    .changes ul { list-style: none; font-size: 8pt; color: #A8C4D0; }
-    .changes ul li { font-family: 'Fake Receipt', 'Courier New', monospace; padding: 0.2rem 0; border-bottom: 1px solid #1E3840; }
-    .changes ul li:last-child { border-bottom: none; }
-    /* Collapseable inmate rows */
-    .inmate-list { font-size: 8pt; }
-    details.inmate-row { border-bottom: 1px solid #1E3840; }
-    details.inmate-row:last-child { border-bottom: none; }
-    details.inmate-row > summary { list-style: none; display: flex; align-items: baseline; gap: 0.5rem; padding: 0.3rem 0; cursor: pointer; user-select: none; }
+    .container { max-width: 900px; margin: 0 auto; padding: 0 2rem 3rem; }
+    .date-group { margin-bottom: 2rem; }
+    .date-label { font-size: 0.7rem; font-weight: 600; letter-spacing: 2px; text-transform: uppercase; color: #4B8FA8; padding-bottom: 0.5rem; border-bottom: 1px solid #22443A; margin-bottom: 0.75rem; }
+    .section-label { font-size: 0.65rem; font-weight: 700; letter-spacing: 2px; text-transform: uppercase; margin: 0.75rem 0 0.4rem; }
+    .section-label.booked { color: #4B8FA8; }
+    .section-label.released { color: #5AAAC8; }
+    details.inmate-row { background: #1A3035; border-radius: 6px; margin-bottom: 0.35rem; border: 1px solid #22443A; overflow: hidden; }
+    details.inmate-row > summary { list-style: none; display: flex; align-items: center; gap: 0.6rem; padding: 0.7rem 1rem; cursor: pointer; user-select: none; }
     details.inmate-row > summary::-webkit-details-marker { display: none; }
-    details.inmate-row > summary::before { content: '▸'; color: #6A8A96; font-size: 0.6rem; flex-shrink: 0; line-height: 1.6; }
-    details.inmate-row[open] > summary::before { content: '▾'; }
-    .inmate-name { font-family: 'Fake Receipt', 'Courier New', monospace; color: #F5F0E8; flex: 1; }
+    .inmate-name { font-family: 'Courier New', monospace; font-size: 9.5pt; font-weight: 700; color: #F5F0E8; text-transform: uppercase; letter-spacing: 0.5px; flex: 1; }
     .inmate-time { color: #6A8A96; font-size: 7pt; white-space: nowrap; }
-    .inmate-details-content { padding: 0.3rem 0 0.5rem 1.1rem; font-size: 7.5pt; }
-    .inmate-charges { color: #A8C4D0; line-height: 1.5; }
-    .inmate-extra { color: #6A8A96; margin-top: 0.2rem; }
-    .no-changes { color: #6A8A96; font-style: italic; }
+    .status-badge { font-size: 0.58rem; font-weight: 700; letter-spacing: 1.5px; text-transform: uppercase; padding: 0.18rem 0.45rem; border-radius: 3px; white-space: nowrap; flex-shrink: 0; }
+    .badge-booked { background: rgba(75,143,168,0.15); color: #4B8FA8; border: 1px solid rgba(75,143,168,0.3); }
+    .badge-released { background: rgba(90,170,200,0.15); color: #5AAAC8; border: 1px solid rgba(90,170,200,0.3); }
+    .chevron { color: #6A8A96; font-size: 0.65rem; flex-shrink: 0; transition: transform 0.15s; }
+    details.inmate-row[open] .chevron { transform: rotate(180deg); }
+    .inmate-details { border-top: 1px solid #22443A; padding: 0.5rem 1rem 0.65rem; }
+    .detail-row { display: flex; align-items: baseline; gap: 0.75rem; padding: 0.3rem 0; border-bottom: 1px solid #1a2e2c; }
+    .detail-row:last-child { border-bottom: none; }
+    .detail-label { font-size: 0.6rem; font-weight: 600; letter-spacing: 1px; text-transform: uppercase; color: #6A8A96; min-width: 55px; flex-shrink: 0; }
+    .detail-value { color: #A8C4D0; font-size: 7.5pt; line-height: 1.5; }
     .no-data { color: #6A8A96; text-align: center; padding: 3rem; }
-    a { color: #4B8FA8; }
+    a { color: #4B8FA8; text-decoration: none; }
+    @media (max-width: 600px) { .page-header { flex-direction: column; align-items: flex-start; gap: 0.2rem; } h1 { font-size: 1.75rem; } .container { padding: 0 1rem 3rem; } }
   </style>
 </head>
 <body>
+  <div class="page-header">
+    <span class="county-label">Mason County</span>
+    <span class="public-records">Public Records — Sheriff's Office</span>
+  </div>
+  <div class="title-section">
+    <h1>Jail Roster Monitor</h1>
+  </div>
+  <div class="nav-bar">
+    <a href="/api/status" class="nav-btn">← Washington Jail Data</a>
+    <a href="/api/stats" class="nav-btn">Statistics →</a>
+  </div>
   <div class="container">
-    <h1>Booked and Released Log</h1>
-    <p class="subtitle">Record of all Bookings and Releases, with newest first</p>
-    <div class="nav-buttons">
-      <a href="/api/status" class="nav-btn">← Main Page</a>
-      <a href="/api/stats" class="nav-btn">Statistics Dashboard →</a>
-    </div>
     ${entriesHtml}
   </div>
 </body>
