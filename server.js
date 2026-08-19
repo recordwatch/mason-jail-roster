@@ -1507,8 +1507,12 @@ app.get('/api/history', (req, res) => {
     .detail-label { font-size: 0.6rem; font-weight: 600; letter-spacing: 1px; text-transform: uppercase; color: #6A8A96; min-width: 55px; flex-shrink: 0; }
     .detail-value { color: #A8C4D0; font-size: 7.5pt; line-height: 1.5; }
     .no-data { color: #6A8A96; text-align: center; padding: 3rem; }
+    .search-bar { padding: 0 2rem 1rem; }
+    .search-input { width: 100%; padding: 0.7rem 1rem; background: #1A3035; color: #F5F0E8; border: 1px solid #22443A; border-radius: 6px; font-size: 9pt; font-family: 'Inter', Arial, sans-serif; outline: none; }
+    .search-input::placeholder { color: #6A8A96; }
+    .search-input:focus { border-color: #4B8FA8; }
     a { color: #4B8FA8; text-decoration: none; }
-    @media (max-width: 600px) { .page-header { flex-direction: column; align-items: flex-start; gap: 0.2rem; } h1 { font-size: 1.75rem; } .container { padding: 0 1rem 3rem; } }
+    @media (max-width: 600px) { .page-header { flex-direction: column; align-items: flex-start; gap: 0.2rem; } h1 { font-size: 1.75rem; } .container { padding: 0 1rem 3rem; } .search-bar { padding: 0 1rem 1rem; } }
   </style>
 </head>
 <body>
@@ -1523,9 +1527,25 @@ app.get('/api/history', (req, res) => {
     <a href="/api/status" class="nav-btn">← Washington Jail Data</a>
     <a href="/api/stats" class="nav-btn">Statistics →</a>
   </div>
+  <div class="search-bar">
+    <input type="text" class="search-input" placeholder="Search by name..." oninput="filterNames(this.value)">
+  </div>
   <div class="container">
     ${entriesHtml}
   </div>
+  <script>
+    function filterNames(q) {
+      q = q.trim().toLowerCase();
+      document.querySelectorAll('details.inmate-row').forEach(el => {
+        const name = el.querySelector('.inmate-name').textContent.toLowerCase();
+        el.style.display = (!q || name.includes(q)) ? '' : 'none';
+      });
+      document.querySelectorAll('.date-group').forEach(group => {
+        const hasVisible = [...group.querySelectorAll('details.inmate-row')].some(r => r.style.display !== 'none');
+        group.style.display = hasVisible ? '' : 'none';
+      });
+    }
+  </script>
 </body>
 </html>`;
 
