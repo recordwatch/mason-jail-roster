@@ -1480,12 +1480,12 @@ app.get('/api/history', (req, res) => {
     .page-header { padding: 1.5rem 2rem 0; display: flex; justify-content: space-between; align-items: center; }
     .county-label { font-size: 0.7rem; font-weight: 600; letter-spacing: 2px; text-transform: uppercase; color: #A8C4D0; }
     .public-records { font-size: 0.7rem; font-weight: 500; letter-spacing: 1px; text-transform: uppercase; color: #6A8A96; }
-    .title-section { padding: 0.75rem 2rem 0.5rem; }
+    .title-section { padding: 0.75rem 2rem 0; }
     h1 { font-family: 'Playfair Display', Georgia, serif; font-size: 2.5rem; font-weight: 700; color: #F5F0E8; letter-spacing: -0.5px; }
-    .nav-bar { display: flex; gap: 0.5rem; padding: 1rem 2rem 1.5rem; }
+    .nav-bar { display: flex; gap: 0.5rem; margin-bottom: 1.25rem; }
     .nav-btn { padding: 0.5rem 1rem; background: #1A3035; color: #C4D8E6; border-radius: 6px; text-decoration: none; font-weight: 600; font-size: 8pt; border: 1px solid #22443A; transition: background 0.15s; }
     .nav-btn:hover { background: #1D4A5C; color: #F5F0E8; }
-    .container { max-width: 900px; margin: 0 auto; padding: 0 2rem 3rem; }
+    .container { max-width: 900px; margin: 0 auto; padding: 1rem 2rem 3rem; }
     .date-group { margin-bottom: 2rem; }
     .date-label { font-size: 0.7rem; font-weight: 600; letter-spacing: 2px; text-transform: uppercase; color: #4B8FA8; padding-bottom: 0.5rem; border-bottom: 1px solid #22443A; margin-bottom: 0.75rem; }
     .section-label { font-size: 0.65rem; font-weight: 700; letter-spacing: 2px; text-transform: uppercase; margin: 0.75rem 0 0.4rem; }
@@ -1494,7 +1494,7 @@ app.get('/api/history', (req, res) => {
     details.inmate-row { background: #1A3035; border-radius: 6px; margin-bottom: 0.35rem; border: 1px solid #22443A; overflow: hidden; }
     details.inmate-row > summary { list-style: none; display: flex; align-items: center; gap: 0.6rem; padding: 0.7rem 1rem; cursor: pointer; user-select: none; }
     details.inmate-row > summary::-webkit-details-marker { display: none; }
-    .inmate-name { font-family: 'Courier New', monospace; font-size: 9.5pt; font-weight: 700; color: #F5F0E8; text-transform: uppercase; letter-spacing: 0.5px; flex: 1; }
+    .inmate-name { font-family: 'Fake Receipt', 'Courier New', monospace; font-size: 9.5pt; font-weight: 700; color: #F5F0E8; text-transform: uppercase; letter-spacing: 0.5px; flex: 1; }
     .inmate-time { color: #6A8A96; font-size: 7pt; white-space: nowrap; }
     .status-badge { font-size: 0.58rem; font-weight: 700; letter-spacing: 1.5px; text-transform: uppercase; padding: 0.18rem 0.45rem; border-radius: 3px; white-space: nowrap; flex-shrink: 0; }
     .badge-booked { background: rgba(75,143,168,0.15); color: #4B8FA8; border: 1px solid rgba(75,143,168,0.3); }
@@ -1507,12 +1507,11 @@ app.get('/api/history', (req, res) => {
     .detail-label { font-size: 0.6rem; font-weight: 600; letter-spacing: 1px; text-transform: uppercase; color: #6A8A96; min-width: 55px; flex-shrink: 0; }
     .detail-value { color: #A8C4D0; font-size: 7.5pt; line-height: 1.5; }
     .no-data { color: #6A8A96; text-align: center; padding: 3rem; }
-    .search-bar { padding: 0 2rem 1rem; }
-    .search-input { width: 100%; padding: 0.7rem 1rem; background: #1A3035; color: #F5F0E8; border: 1px solid #22443A; border-radius: 6px; font-size: 9pt; font-family: 'Inter', Arial, sans-serif; outline: none; }
+    .search-input { width: 100%; padding: 0.7rem 1rem; background: #1A3035; color: #F5F0E8; border: 1px solid #22443A; border-radius: 6px; font-size: 9pt; font-family: 'Inter', Arial, sans-serif; outline: none; margin-bottom: 1.25rem; }
     .search-input::placeholder { color: #6A8A96; }
     .search-input:focus { border-color: #4B8FA8; }
     a { color: #4B8FA8; text-decoration: none; }
-    @media (max-width: 600px) { .page-header { flex-direction: column; align-items: flex-start; gap: 0.2rem; } h1 { font-size: 1.75rem; } .container { padding: 0 1rem 3rem; } .search-bar { padding: 0 1rem 1rem; } }
+    @media (max-width: 600px) { .page-header { flex-direction: column; align-items: flex-start; gap: 0.2rem; } h1 { font-size: 1.75rem; } .container { padding: 0 1rem 3rem; } }
   </style>
 </head>
 <body>
@@ -1523,14 +1522,12 @@ app.get('/api/history', (req, res) => {
   <div class="title-section">
     <h1>Jail Roster Monitor</h1>
   </div>
-  <div class="nav-bar">
-    <a href="/api/status" class="nav-btn">← Washington Jail Data</a>
-    <a href="/api/stats" class="nav-btn">Statistics →</a>
-  </div>
-  <div class="search-bar">
-    <input type="text" class="search-input" placeholder="Search by name..." oninput="filterNames(this.value)">
-  </div>
   <div class="container">
+    <div class="nav-bar">
+      <a href="/api/status" class="nav-btn">← Washington Jail Data</a>
+      <a href="/api/stats" class="nav-btn">Statistics →</a>
+    </div>
+    <input type="text" class="search-input" placeholder="Search by name..." oninput="filterNames(this.value)">
     ${entriesHtml}
   </div>
   <script>
