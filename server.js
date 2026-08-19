@@ -811,10 +811,6 @@ if (fs.existsSync(logFile)) {
 </head>
 <body>
   <div class="wrapper">
-    <div class="page-header">
-      <span class="county-label">Mason County</span>
-      <span class="public-records">Public Records — Sheriff's Office</span>
-    </div>
     <h1>Washington Jail Data</h1>
     <div class="stats-bar">
       <div>
