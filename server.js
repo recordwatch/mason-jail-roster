@@ -808,8 +808,8 @@ if (fs.existsSync(logFile)) {
 <body>
   <div class="container">
     <h1><span>Washington Jail Data</span></h1>
-    <a href="/api/history" class="run-btn">Jail Bookings and Release Log</a>
-    <a href="/api/stats" class="run-btn" style="margin-top: 0.75rem;">Statistics Dashboard</a>
+    <a href="https://hub.masoncountywa.gov/sheriff/reports/incustdy.pdf" target="_blank" rel="noopener noreferrer" class="run-btn">Visit Mason County Jail Roster Monitor</a>
+    <a href="/api/history" class="run-btn" style="margin-top: 0.75rem;">Jail Bookings and Release Log</a>
     <a href="https://theonlytacocat.github.io/ksco-scraper/" target="_blank" rel="noopener noreferrer" class="run-btn" style="margin-top: 0.75rem;">Visit Kitsap County Jail Monitor</a>
     <a href="https://theonlytacocat.github.io/pierce-jail-roster/" target="_blank" rel="noopener noreferrer" class="run-btn" style="margin-top: 0.75rem;">Visit Pierce County Jail Monitor</a>
     <details class="status" style="margin-top: 1rem;">
@@ -838,7 +838,6 @@ if (fs.existsSync(logFile)) {
       </div>
     </details>
     <div class="footer">
-      <p style="margin-top: 0.5rem;">Monitoring <a href="https://hub.masoncountywa.gov/sheriff/reports/incustdy.pdf" target="_blank">Mason County Jail Roster</a></p>
       <a href="/legislative" style="display: inline-block; margin-top: 1rem; padding: 0.5rem 1rem; background: #1A3035; color: #C4D8E6; border: 1px solid #0B607C; border-radius: 6px; text-decoration: none; font-size: 0.75rem;">March 13th 2026: FINAL WA Legislative Session Update</a>
     </div>
   </div>
