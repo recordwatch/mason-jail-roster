@@ -808,8 +808,7 @@ if (fs.existsSync(logFile)) {
 <body>
   <div class="container">
     <h1><span>Washington Jail Data</span></h1>
-    <a href="https://hub.masoncountywa.gov/sheriff/reports/incustdy.pdf" target="_blank" rel="noopener noreferrer" class="run-btn">Visit Mason County Jail Roster Monitor</a>
-    <a href="/api/history" class="run-btn" style="margin-top: 0.75rem;">Jail Bookings and Release Log</a>
+    <a href="/api/history" class="run-btn">Mason County Jail Roster Monitor</a>
     <a href="https://theonlytacocat.github.io/ksco-scraper/" target="_blank" rel="noopener noreferrer" class="run-btn" style="margin-top: 0.75rem;">Visit Kitsap County Jail Monitor</a>
     <a href="https://theonlytacocat.github.io/pierce-jail-roster/" target="_blank" rel="noopener noreferrer" class="run-btn" style="margin-top: 0.75rem;">Visit Pierce County Jail Monitor</a>
     <details class="status" style="margin-top: 1rem;">
