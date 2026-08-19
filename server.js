@@ -778,19 +778,18 @@ if (fs.existsSync(logFile)) {
   <style>
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
     html, body { overflow-x: hidden; width: 100%; }
-    body { font-family: 'Inter', Arial, sans-serif; font-size: 8pt; background: #152220; color: #C4D8E6; min-height: 100vh; }
-    .page-header { padding: 1.5rem 2rem 0; display: flex; justify-content: space-between; align-items: center; }
+    body { font-family: 'Inter', Arial, sans-serif; font-size: 8pt; background: #152220; color: #C4D8E6; min-height: 100vh; display: flex; justify-content: center; padding: 2rem 1rem; }
+    .wrapper { width: 100%; max-width: 520px; }
+    .page-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.5rem; }
     .county-label { font-size: 0.7rem; font-weight: 600; letter-spacing: 2px; text-transform: uppercase; color: #A8C4D0; }
     .public-records { font-size: 0.7rem; font-weight: 500; letter-spacing: 1px; text-transform: uppercase; color: #6A8A96; }
-    .title-section { padding: 0.75rem 2rem 1.25rem; }
-    h1 { font-family: 'Playfair Display', Georgia, serif; font-size: 3rem; font-weight: 700; color: #F5F0E8; letter-spacing: -1px; line-height: 1.1; }
-    .stats-bar { background: #1A3035; border-top: 1px solid #22443A; border-bottom: 1px solid #22443A; padding: 1rem 2rem; display: flex; gap: 3rem; }
-    .stats-bar-value { font-size: 1.4rem; font-weight: 600; color: #4B8FA8; }
-    .stats-bar-label { font-size: 0.6rem; letter-spacing: 1.5px; text-transform: uppercase; color: #6A8A96; margin-top: 0.15rem; }
-    .nav-section { padding: 1.25rem 2rem; display: flex; flex-direction: column; gap: 0.5rem; }
+    h1 { font-family: 'Playfair Display', Georgia, serif; font-size: 2.5rem; font-weight: 700; color: #F5F0E8; letter-spacing: -1px; line-height: 1.1; margin-bottom: 1rem; }
+    .stats-bar { background: #1A3035; border: 1px solid #22443A; border-radius: 6px; padding: 0.85rem 1.25rem; display: flex; gap: 2rem; margin-bottom: 0.75rem; }
+    .stats-bar-value { font-size: 1.1rem; font-weight: 600; color: #4B8FA8; }
+    .stats-bar-label { font-size: 0.6rem; letter-spacing: 1.5px; text-transform: uppercase; color: #6A8A96; margin-top: 0.1rem; }
+    .nav-section { display: flex; flex-direction: column; gap: 0.5rem; margin-bottom: 0.75rem; }
     .nav-btn { display: block; padding: 0.85rem 1.25rem; background: #1A3035; color: #C4D8E6; border-radius: 6px; text-decoration: none; font-weight: 600; font-size: 9pt; border: 1px solid #22443A; transition: background 0.15s; }
     .nav-btn:hover { background: #1D4A5C; color: #F5F0E8; }
-    .system-section { padding: 0 2rem; }
     details.status { background: #1A3035; border-radius: 6px; border: 1px solid #22443A; overflow: hidden; }
     details.status > summary { display: flex; align-items: center; gap: 0.5rem; cursor: pointer; list-style: none; padding: 0.85rem 1.25rem; }
     details.status > summary::-webkit-details-marker { display: none; }
@@ -805,35 +804,33 @@ if (fs.existsSync(logFile)) {
     .stat:nth-last-child(-n+2) { border-bottom: none; }
     .stat-label { font-size: 0.6rem; letter-spacing: 1px; text-transform: uppercase; color: #6A8A96; }
     .stat-value { font-weight: 600; color: #F5F0E8; font-size: 9pt; margin-top: 0.1rem; }
-    .footer { padding: 1.25rem 2rem 2rem; }
+    .footer { margin-top: 0.75rem; }
     a { color: #4B8FA8; text-decoration: none; }
-    @media (max-width: 600px) { h1 { font-size: 2rem; } .stats-bar { gap: 1.5rem; } .page-header { flex-direction: column; align-items: flex-start; gap: 0.2rem; } }
+    @media (max-width: 600px) { h1 { font-size: 1.75rem; } .stats-bar { gap: 1rem; } .page-header { flex-direction: column; align-items: flex-start; gap: 0.2rem; } }
   </style>
 </head>
 <body>
-  <div class="page-header">
-    <span class="county-label">Mason County</span>
-    <span class="public-records">Public Records — Sheriff's Office</span>
-  </div>
-  <div class="title-section">
+  <div class="wrapper">
+    <div class="page-header">
+      <span class="county-label">Mason County</span>
+      <span class="public-records">Public Records — Sheriff's Office</span>
+    </div>
     <h1>Washington Jail Data</h1>
-  </div>
-  <div class="stats-bar">
-    <div>
-      <div class="stats-bar-value">${inmateCount}</div>
-      <div class="stats-bar-label">Currently in Custody</div>
+    <div class="stats-bar">
+      <div>
+        <div class="stats-bar-value">${inmateCount}</div>
+        <div class="stats-bar-label">Currently in Custody</div>
+      </div>
+      <div>
+        <div class="stats-bar-value">${lastCheck !== "Never" ? formatDatePST(new Date(lastCheck)) : "Never"}</div>
+        <div class="stats-bar-label">Last Updated</div>
+      </div>
     </div>
-    <div>
-      <div class="stats-bar-value">${lastCheck !== "Never" ? formatDatePST(new Date(lastCheck)) : "Never"}</div>
-      <div class="stats-bar-label">Last Updated</div>
+    <div class="nav-section">
+      <a href="/api/history" class="nav-btn">Mason County Jail Roster Monitor</a>
+      <a href="https://theonlytacocat.github.io/ksco-scraper/" target="_blank" rel="noopener noreferrer" class="nav-btn">Visit Kitsap County Jail Monitor</a>
+      <a href="https://theonlytacocat.github.io/pierce-jail-roster/" target="_blank" rel="noopener noreferrer" class="nav-btn">Visit Pierce County Jail Monitor</a>
     </div>
-  </div>
-  <div class="nav-section">
-    <a href="/api/history" class="nav-btn">Mason County Jail Roster Monitor</a>
-    <a href="https://theonlytacocat.github.io/ksco-scraper/" target="_blank" rel="noopener noreferrer" class="nav-btn">Visit Kitsap County Jail Monitor</a>
-    <a href="https://theonlytacocat.github.io/pierce-jail-roster/" target="_blank" rel="noopener noreferrer" class="nav-btn">Visit Pierce County Jail Monitor</a>
-  </div>
-  <div class="system-section">
     <details class="status">
       <summary>
         <div class="status-dot"></div>
@@ -859,9 +856,9 @@ if (fs.existsSync(logFile)) {
         </div>
       </div>
     </details>
-  </div>
-  <div class="footer">
-    <a href="/legislative" style="display: inline-block; padding: 0.5rem 1rem; background: #1A3035; color: #C4D8E6; border: 1px solid #22443A; border-radius: 6px; text-decoration: none; font-size: 0.75rem;">March 13th 2026: FINAL WA Legislative Session Update</a>
+    <div class="footer">
+      <a href="/legislative" style="display: inline-block; margin-top: 0.75rem; padding: 0.5rem 1rem; background: #1A3035; color: #C4D8E6; border: 1px solid #22443A; border-radius: 6px; text-decoration: none; font-size: 0.75rem;">March 13th 2026: FINAL WA Legislative Session Update</a>
+    </div>
   </div>
 </body>
 </html>`;
