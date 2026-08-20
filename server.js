@@ -26,6 +26,59 @@ const RELEASE_STATS_URL = 'https://hub.masoncountywa.gov/sheriff/reports/release
 const STORAGE_DIR = process.env.RAILWAY_VOLUME_MOUNT_PATH || '/data';
 const RELEASE_STATS_HISTORY_FILE = path.join(STORAGE_DIR, 'release_stats_history.json');
 
+// ── Sibling monitors (wajaildata.org hub totals) ──────────────────────────
+// The landing page aggregates current population and changes-detected
+// counts across all four county monitors, not just Mason's own data.
+const SIBLING_MONITORS = [
+  { name: 'kitsap',   base: 'https://theonlytacocat.github.io/ksco-scraper/data' },
+  { name: 'pierce',   base: 'https://theonlytacocat.github.io/pierce-jail-roster/data' },
+  { name: 'thurston', base: 'https://theonlytacocat.github.io/thurston-jail-roster/data' },
+];
+const SIBLING_CACHE_TTL_MS = 5 * 60 * 1000;
+const siblingCache = {}; // name -> { inCustody, changes, fetchedAt }
+
+async function fetchSiblingMonitor(monitor) {
+  try {
+    const [statusRes, logRes] = await Promise.all([
+      fetch(`${monitor.base}/status.json`, { signal: AbortSignal.timeout(4000) }),
+      fetch(`${monitor.base}/change_log.json`, { signal: AbortSignal.timeout(4000) }),
+    ]);
+    const status = statusRes.ok ? await statusRes.json() : null;
+    const log = logRes.ok ? await logRes.json() : null;
+
+    const prev = siblingCache[monitor.name];
+    const inCustody = status?.inCustody ?? prev?.inCustody ?? 0;
+    // Each entry is one booking; a released entry represents both a booked
+    // and a released change, matching how Mason's own change log counts
+    // BOOKED + RELEASED lines for the same person.
+    const changes = Array.isArray(log)
+      ? log.reduce((sum, e) => sum + (e.status === 'released' ? 2 : 1), 0)
+      : (prev?.changes ?? 0);
+
+    siblingCache[monitor.name] = { inCustody, changes, fetchedAt: Date.now() };
+  } catch (e) {
+    console.error(`Failed to fetch ${monitor.name} monitor stats:`, e.message);
+    // Keep whatever was last cached (if anything) rather than zeroing out.
+  }
+}
+
+async function getSiblingTotals() {
+  const now = Date.now();
+  const stale = SIBLING_MONITORS.filter(
+    m => !siblingCache[m.name] || now - siblingCache[m.name].fetchedAt > SIBLING_CACHE_TTL_MS
+  );
+  if (stale.length > 0) {
+    await Promise.all(stale.map(fetchSiblingMonitor));
+  }
+
+  let inCustody = 0, changes = 0;
+  for (const m of SIBLING_MONITORS) {
+    const c = siblingCache[m.name];
+    if (c) { inCustody += c.inCustody; changes += c.changes; }
+  }
+  return { inCustody, changes };
+}
+
 // Ensure storage directory exists
 function ensureStorageDir() {
   if (!fs.existsSync(STORAGE_DIR)) {
@@ -710,7 +763,7 @@ app.get('/', (req, res) => {
 });
 
 // Status page
-app.get('/api/status', (req, res) => {
+app.get('/api/status', async (req, res) => {
   const dataDir = STORAGE_DIR;
   let lastCheck = "Never";
   let inmateCount = 0;
@@ -757,6 +810,10 @@ if (fs.existsSync(logFile)) {
       console.error("Failed to write metrics:", e);
     }
   } catch (e) {}
+
+  const siblingTotals = await getSiblingTotals();
+  inmateCount += siblingTotals.inCustody;
+  changeCount += siblingTotals.changes;
 
   const html = `<!DOCTYPE html>
 <html>
