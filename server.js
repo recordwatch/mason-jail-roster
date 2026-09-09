@@ -20,6 +20,22 @@ const __dirname = dirname(__filename);
 
 const app = express();
 app.use('/fonts', express.static(path.join(__dirname, 'fonts')));
+
+// Admin/debug routes can mutate or delete the canonical data files, so they
+// require a key even though the rest of the site is public.
+const ADMIN_KEY = process.env.ADMIN_KEY;
+function requireAdminKey(req, res, next) {
+  if (!ADMIN_KEY) {
+    return res.status(503).json({ error: 'Admin endpoints disabled: ADMIN_KEY not configured' });
+  }
+  if (req.query.key !== ADMIN_KEY) {
+    return res.status(401).json({ error: 'Unauthorized' });
+  }
+  next();
+}
+app.use('/api/admin', requireAdminKey);
+app.use('/api/debug', requireAdminKey);
+
 const PORT = process.env.PORT || 3000;
 const PDF_URL = 'https://hub.masoncountywa.gov/sheriff/reports/incustdy.pdf';
 const RELEASE_STATS_URL = 'https://hub.masoncountywa.gov/sheriff/reports/release_stats48hrs.pdf';
@@ -204,12 +220,21 @@ function extractBookings(rosterText) {
     }
 
     const bookDateMatch = block.match(/Book Date:\s*(\d{1,2}:\d{2}:\d{2})\s+(\d{1,2}\/\d{1,2}\/\d{2,4})/);
-    const bookDate = bookDateMatch ? bookDateMatch[2] + " " + bookDateMatch[1] : "Unknown";
+    let bookDate = bookDateMatch ? bookDateMatch[2] + " " + bookDateMatch[1] : "Unknown";
+    // Reject garbage dates (rollovers, out-of-range years) instead of trusting the raw regex match.
+    if (bookDate !== "Unknown" && !parseBookingDate(bookDate)) {
+      console.warn(`Booking ${id}: rejecting invalid Book Date "${bookDate}"`);
+      bookDate = "Unknown";
+    }
 
     const relDateMatch = block.match(/Rel Date:\s*(?:No Rel Date|(\d{1,2}:\d{2}:\d{2})\s+(\d{1,2}\/\d{1,2}\/\d{2,4}))/);
     let releaseDate = "Not Released";
     if (relDateMatch && relDateMatch[1] && relDateMatch[2]) {
       releaseDate = relDateMatch[2] + " " + relDateMatch[1];
+      if (!parseBookingDate(releaseDate)) {
+        console.warn(`Booking ${id}: rejecting invalid Rel Date "${releaseDate}"`);
+        releaseDate = "Not Released";
+      }
     }
 
     const charges = [];
