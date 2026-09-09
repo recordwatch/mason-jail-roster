@@ -4,14 +4,19 @@
  */
 
 /**
- * Parse a booking/release date string from the jail roster PDF
- * @param {string} dateStr - Format: "MM/DD/YY HH:MM:SS" (e.g., "01/18/26 14:30:00")
+ * Parse a booking/release date string.
+ * Accepts our own storage format ("YYYY-MM-DD" or "YYYY-MM-DDTHH:MM:SS")
+ * as well as the legacy jail-roster format ("MM/DD/YY HH:MM:SS") for any
+ * historical log lines that predate the ISO migration.
+ * @param {string} dateStr
  * @returns {Date|null} - Parsed Date object, or null if invalid
- * 
+ *
  * WHY: Date parsing was scattered throughout the code in 5+ places.
  * Having one function means:
  * - Bugs only need to be fixed once
- * - Timezone handling is consistent
+ * - Timezone handling is consistent (always constructed as local time,
+ *   never passed as a raw string to `new Date()`, which would parse
+ *   date-only ISO strings as UTC and shift the day by one)
  * - Easy to add validation
  */
 function parseBookingDate(dateStr) {
@@ -19,25 +24,30 @@ function parseBookingDate(dateStr) {
     return null;
   }
 
-  // Match format: "MM/DD/YY HH:MM:SS"
-  const match = dateStr.match(/(\d{1,2})\/(\d{1,2})\/(\d{2})\s+(\d{1,2}):(\d{2}):(\d{2})/);
-  
-  if (!match) {
-    return null;
+  let month, day, year, hours, minutes, seconds;
+
+  const isoMatch = dateStr.match(/^(\d{4})-(\d{2})-(\d{2})(?:T(\d{2}):(\d{2}):(\d{2}))?$/);
+  if (isoMatch) {
+    [, year, month, day, hours, minutes, seconds] = isoMatch;
+    hours = hours || '0';
+    minutes = minutes || '0';
+    seconds = seconds || '0';
+  } else {
+    const legacyMatch = dateStr.match(/(\d{1,2})\/(\d{1,2})\/(\d{2})\s+(\d{1,2}):(\d{2}):(\d{2})/);
+    if (!legacyMatch) {
+      return null;
+    }
+    [, month, day, year, hours, minutes, seconds] = legacyMatch;
+    year = String(2000 + parseInt(year)); // Convert 2-digit year to 4-digit (assumes 2000s)
   }
 
-  const [, month, day, year, hours, minutes, seconds] = match;
-  
-  // Convert 2-digit year to 4-digit (assumes 2000s)
-  const fullYear = 2000 + parseInt(year);
-  
   // Create date object (months are 0-indexed in JavaScript)
   const date = new Date(
-    fullYear, 
-    parseInt(month) - 1, 
+    parseInt(year),
+    parseInt(month) - 1,
     parseInt(day),
-    parseInt(hours), 
-    parseInt(minutes), 
+    parseInt(hours),
+    parseInt(minutes),
     parseInt(seconds)
   );
 
@@ -56,6 +66,35 @@ function parseBookingDate(dateStr) {
   }
 
   return date;
+}
+
+/**
+ * Convert a jail-roster date/time pair into our ISO storage format.
+ * @param {string} mmddyy - "M/D/YY" or "MM/DD/YYYY"
+ * @param {string} [hhmmss] - "H:MM:SS", omit for a date-only (time unknown) value
+ * @returns {string} - "YYYY-MM-DD" or "YYYY-MM-DDTHH:MM:SS"
+ */
+function toIsoDateTime(mmddyy, hhmmss) {
+  const [mo, d, yRaw] = mmddyy.split('/').map(Number);
+  const year = yRaw < 100 ? 2000 + yRaw : yRaw;
+  const pad = n => String(n).padStart(2, '0');
+  const datePart = `${year}-${pad(mo)}-${pad(d)}`;
+  return hhmmss ? `${datePart}T${hhmmss}` : datePart;
+}
+
+/**
+ * Pull a "Label: <date>" value out of a change_log.txt line and parse it.
+ * Matches both our ISO storage format and the legacy "MM/DD/YY HH:MM:SS"
+ * format from historical un-migrated lines.
+ * @param {string} line
+ * @param {string} label - e.g. "Booked" or "Released"
+ * @returns {Date|null}
+ */
+function extractLabeledDate(line, label) {
+  const match = line.match(new RegExp(
+    `${label}:\\s+(\\d{4}-\\d{2}-\\d{2}(?:T\\d{2}:\\d{2}:\\d{2})?|\\d{1,2}\\/\\d{1,2}\\/\\d{2,4}\\s+\\d{1,2}:\\d{2}:\\d{2})`
+  ));
+  return match ? parseBookingDate(match[1]) : null;
 }
 
 /**
@@ -159,6 +198,18 @@ function isMidnight(dateStr) {
 }
 
 /**
+ * Format a Date object as "MM/DD/YY HH:MM:SS" for compact display in tables,
+ * regardless of whether the underlying storage was ISO or legacy format.
+ * @param {Date|null} date
+ * @returns {string}
+ */
+function formatShortDateTime(date) {
+  if (!date || isNaN(date.getTime())) return '';
+  const pad = n => String(n).padStart(2, '0');
+  return `${pad(date.getMonth() + 1)}/${pad(date.getDate())}/${String(date.getFullYear()).slice(-2)} ${pad(date.getHours())}:${pad(date.getMinutes())}:${pad(date.getSeconds())}`;
+}
+
+/**
  * Format a Date object to PST/PDT string
  * @param {Date} date - Date object to format
  * @returns {string} - Formatted string like "2/27/2026, 2:30:45 PM PST"
@@ -183,6 +234,9 @@ function formatDatePST(date) {
 // Export all functions
 export {
   parseBookingDate,
+  toIsoDateTime,
+  extractLabeledDate,
+  formatShortDateTime,
   formatMinutes,
   parseTimeServed,
   daysBetween,

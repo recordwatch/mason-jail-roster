@@ -8,6 +8,9 @@ import { dirname } from 'path';
 import PDFParser from 'pdf-parse';
 import {
   parseBookingDate,
+  toIsoDateTime,
+  extractLabeledDate,
+  formatShortDateTime,
   formatMinutes,
   parseTimeServed,
   daysBetween,
@@ -156,7 +159,7 @@ async function fetchReleaseStats() {
           .replace(/\s*\.\s*$/, '');
         
         releaseMap.set(cleanName, {
-          releaseDateTime: `${date} ${time}`,
+          releaseDateTime: toIsoDateTime(date, time),
           releaseType,
           timeServed: timeServed.replace(/\s+/g, ''),
           bail: `$${bail}`
@@ -220,20 +223,25 @@ function extractBookings(rosterText) {
     }
 
     const bookDateMatch = block.match(/Book Date:\s*(\d{1,2}:\d{2}:\d{2})\s+(\d{1,2}\/\d{1,2}\/\d{2,4})/);
-    let bookDate = bookDateMatch ? bookDateMatch[2] + " " + bookDateMatch[1] : "Unknown";
-    // Reject garbage dates (rollovers, out-of-range years) instead of trusting the raw regex match.
-    if (bookDate !== "Unknown" && !parseBookingDate(bookDate)) {
-      console.warn(`Booking ${id}: rejecting invalid Book Date "${bookDate}"`);
-      bookDate = "Unknown";
+    let bookDate = "Unknown";
+    if (bookDateMatch) {
+      const iso = toIsoDateTime(bookDateMatch[2], bookDateMatch[1]);
+      // Reject garbage dates (rollovers, out-of-range years) instead of trusting the raw regex match.
+      if (parseBookingDate(iso)) {
+        bookDate = iso;
+      } else {
+        console.warn(`Booking ${id}: rejecting invalid Book Date "${bookDateMatch[2]} ${bookDateMatch[1]}"`);
+      }
     }
 
     const relDateMatch = block.match(/Rel Date:\s*(?:No Rel Date|(\d{1,2}:\d{2}:\d{2})\s+(\d{1,2}\/\d{1,2}\/\d{2,4}))/);
     let releaseDate = "Not Released";
     if (relDateMatch && relDateMatch[1] && relDateMatch[2]) {
-      releaseDate = relDateMatch[2] + " " + relDateMatch[1];
-      if (!parseBookingDate(releaseDate)) {
-        console.warn(`Booking ${id}: rejecting invalid Rel Date "${releaseDate}"`);
-        releaseDate = "Not Released";
+      const iso = toIsoDateTime(relDateMatch[2], relDateMatch[1]);
+      if (parseBookingDate(iso)) {
+        releaseDate = iso;
+      } else {
+        console.warn(`Booking ${id}: rejecting invalid Rel Date "${relDateMatch[2]} ${relDateMatch[1]}"`);
       }
     }
 
@@ -289,22 +297,13 @@ function extractBookings(rosterText) {
 }
 
 // Compute actual time served from book date string → release date string.
-// Both dates are in "M/D/YY HH:MM:SS" or "MM/DD/YY HH:MM:SS" format.
+// Both dates are in our ISO storage format ("YYYY-MM-DDTHH:MM:SS").
 // We calculate this ourselves rather than trusting the PDF's own time-served field,
 // which tracks time in the current booking stint and can be far shorter than reality.
 function computeTimeServed(bookDateStr, releaseDateTimeStr) {
   try {
-    const parseJailDate = (s) => {
-      const parts = s.trim().split(' ');
-      if (parts.length < 2) return null;
-      const [datePart, timePart] = parts;
-      const [m, d, y] = datePart.split('/').map(Number);
-      const [h, min, sec] = timePart.split(':').map(Number);
-      const year = y < 100 ? 2000 + y : y;
-      return new Date(year, m - 1, d, h, min, sec);
-    };
-    const booked = parseJailDate(bookDateStr);
-    const released = parseJailDate(releaseDateTimeStr);
+    const booked = parseBookingDate(bookDateStr);
+    const released = parseBookingDate(releaseDateTimeStr);
     if (!booked || !released || isNaN(booked) || isNaN(released)) return null;
     const diffMs = released - booked;
     if (diffMs <= 0) return null;
@@ -349,7 +348,8 @@ function formatReleased(b, stats, isPending = false) {
 
   // No match in release PDF — compute time served from book date to detection time.
   const now = new Date();
-  const releaseDate = `${String(now.getMonth() + 1).padStart(2, '0')}/${String(now.getDate()).padStart(2, '0')}/${String(now.getFullYear()).slice(-2)} ${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}:${String(now.getSeconds()).padStart(2, '0')}`;
+  const pad = n => String(n).padStart(2, '0');
+  const releaseDate = `${now.getFullYear()}-${pad(now.getMonth() + 1)}-${pad(now.getDate())}T${pad(now.getHours())}:${pad(now.getMinutes())}:${pad(now.getSeconds())}`;
   const computedNoMatch = (b.bookDate && b.bookDate !== 'Unknown')
     ? computeTimeServed(b.bookDate, releaseDate)
     : null;
@@ -373,23 +373,24 @@ app.get('/api/admin/fix-releases', (req, res) => {
     const fixedLines = [];
     
     for (const line of lines) {
-      // Track the current date context from ANY dated entry (BOOKED or RELEASED with valid dates)
-      const dateMatch = line.match(/(?:Booked|Released):\s+(\d{2}\/\d{2}\/\d{2})\s+\d{2}:\d{2}:\d{2}/);
+      // Track the current date context from ANY dated entry (BOOKED or RELEASED with valid dates).
+      // Accepts ISO ("2026-02-09T10:02:00") or legacy ("02/09/26 10:02:00") lines.
+      const dateMatch = line.match(/(?:Booked|Released):\s+(\d{4}-\d{2}-\d{2})T\d{2}:\d{2}:\d{2}|(?:Booked|Released):\s+(\d{1,2}\/\d{1,2}\/\d{2,4})\s+\d{1,2}:\d{2}:\d{2}/);
       if (dateMatch) {
-        currentDate = dateMatch[1];
+        currentDate = dateMatch[1] || toIsoDateTime(dateMatch[2]);
       }
-      
-      // Also check for release dates without times (like "Released: 02/09/26")
-      const releaseDateOnlyMatch = line.match(/Released:\s+(\d{2}\/\d{2}\/\d{2})(?:\s|$|\|)/);
-      if (releaseDateOnlyMatch && !line.includes('00:00:00')) {
+
+      // Also check for release dates without times (like "Released: 2026-02-09")
+      const releaseDateOnlyMatch = line.match(/Released:\s+(\d{4}-\d{2}-\d{2})(?:\s|$|\|)/);
+      if (releaseDateOnlyMatch && !line.includes('T00:00:00')) {
         currentDate = releaseDateOnlyMatch[1];
       }
-      
+
       // Fix broken RELEASED entries
       if (line.includes('RELEASED |') && line.includes('Released: Not Released')) {
         if (currentDate) {
-          // Replace "Released: Not Released" with "Released: DATE 00:00:00"
-          const fixedLine = line.replace('Released: Not Released', `Released: ${currentDate} 00:00:00`);
+          // Replace "Released: Not Released" with "Released: DATE T00:00:00"
+          const fixedLine = line.replace('Released: Not Released', `Released: ${currentDate}T00:00:00`);
           fixedLines.push(fixedLine);
           fixed++;
         } else {
@@ -418,24 +419,71 @@ app.get('/api/admin/fix-releases', (req, res) => {
   }
 });
 
+// One-time migration: convert historical "MM/DD/YY HH:MM:SS" dates in
+// change_log.txt and release_stats_history.json to our ISO storage format.
+// Safe to run more than once — already-ISO dates don't match the legacy
+// pattern, so re-running is a no-op. Backs up both files before writing.
+function migrateLegacyDateLine(line) {
+  return line.replace(
+    /(Booked|Released):\s+(\d{1,2}\/\d{1,2}\/\d{2,4})(?:\s+(\d{1,2}:\d{2}:\d{2}))?/g,
+    (full, label, datePart, timePart) => `${label}: ${toIsoDateTime(datePart, timePart)}`
+  );
+}
+
+app.get('/api/admin/migrate-dates-to-iso', (req, res) => {
+  try {
+    const logFile = path.join(STORAGE_DIR, 'change_log.txt');
+    let logLinesChanged = 0, logTotalLines = 0;
+
+    if (fs.existsSync(logFile)) {
+      const content = fs.readFileSync(logFile, 'utf-8');
+      const lines = content.split('\n');
+      logTotalLines = lines.length;
+      const migratedLines = lines.map(migrateLegacyDateLine);
+      for (let i = 0; i < lines.length; i++) {
+        if (lines[i] !== migratedLines[i]) logLinesChanged++;
+      }
+      fs.writeFileSync(logFile + '.backup-iso-' + Date.now(), content);
+      fs.writeFileSync(logFile, migratedLines.join('\n'));
+    }
+
+    let histChanged = 0, histTotal = 0;
+    if (fs.existsSync(RELEASE_STATS_HISTORY_FILE)) {
+      const rawHist = fs.readFileSync(RELEASE_STATS_HISTORY_FILE, 'utf-8');
+      const history = JSON.parse(rawHist);
+      histTotal = history.length;
+      const migratedHistory = history.map(entry => {
+        const m = (entry.releaseDateTime || '').match(/^(\d{1,2}\/\d{1,2}\/\d{2,4})\s+(\d{1,2}:\d{2}:\d{2})$/);
+        if (!m) return entry;
+        histChanged++;
+        return { ...entry, releaseDateTime: toIsoDateTime(m[1], m[2]) };
+      });
+      fs.writeFileSync(RELEASE_STATS_HISTORY_FILE + '.backup-iso-' + Date.now(), rawHist);
+      fs.writeFileSync(RELEASE_STATS_HISTORY_FILE, JSON.stringify(migratedHistory, null, 2));
+    }
+
+    res.send(`<!DOCTYPE html><html><body style="font-family:monospace;background:#0a1a1f;color:#C4D8E6;padding:2rem;">
+      <h2>✓ Date Migration Complete</h2>
+      <p><b>change_log.txt:</b> ${logLinesChanged} / ${logTotalLines} lines converted to ISO</p>
+      <p><b>release_stats_history.json:</b> ${histChanged} / ${histTotal} entries converted to ISO</p>
+      <p style="color:#6A8A96;">Both files backed up before changes (.backup-iso-&lt;timestamp&gt;).</p>
+      <a href="/api/history" style="color:#4B8FA8;">→ View History</a> &nbsp;
+      <a href="/api/stats" style="color:#4B8FA8;">→ View Stats</a> &nbsp;
+      <a href="/api/deepstats" style="color:#4B8FA8;">→ View Deep Stats</a>
+    </body></html>`);
+  } catch (e) {
+    res.status(500).send('Error: ' + e.message);
+  }
+});
+
 // Backfill time served for all historical entries using actual book date → release date.
 // Fixes both change_log.txt (display) and release_stats_history.json (stats calculations).
 app.get('/api/admin/backfill-time-served', (req, res) => {
   try {
     const logFile = path.join(STORAGE_DIR, 'change_log.txt');
 
-    const parseJailDate = (s) => {
-      try {
-        const parts = (s || '').trim().split(' ');
-        if (parts.length < 2) return null;
-        const [datePart, timePart] = parts;
-        const [m, d, y] = datePart.split('/').map(Number);
-        const [h, min, sec] = timePart.split(':').map(Number);
-        const year = y < 100 ? 2000 + y : y;
-        const dt = new Date(year, m - 1, d, h, min, sec);
-        return isNaN(dt.getTime()) ? null : dt;
-      } catch (e) { return null; }
-    };
+    // Matches either our ISO storage format or the legacy "MM/DD/YY HH:MM:SS" format.
+    const dateToken = '(\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}|\\d{1,2}\\/\\d{1,2}\\/\\d{2,4} \\d{1,2}:\\d{2}:\\d{2})';
 
     // ── Step 1: Build name → [{bookDate, lineIdx}] from BOOKED entries ────────
     const content = fs.readFileSync(logFile, 'utf-8');
@@ -443,7 +491,7 @@ app.get('/api/admin/backfill-time-served', (req, res) => {
     const bookMap = new Map();
 
     for (let i = 0; i < logLines.length; i++) {
-      const m = logLines[i].match(/^BOOKED \| (.+?) \| Booked: (\d{1,2}\/\d{1,2}\/\d{2,4} \d{1,2}:\d{2}:\d{2})/);
+      const m = logLines[i].match(new RegExp(`^BOOKED \\| (.+?) \\| Booked: ${dateToken}`));
       if (!m) continue;
       const name = m[1].trim();
       const bookDate = m[2].trim();
@@ -453,13 +501,13 @@ app.get('/api/admin/backfill-time-served', (req, res) => {
 
     // Find the most recent booking for a name that occurred before a given release
     const findBookDate = (name, releaseDateTime, releaseLineIdx) => {
-      const releaseDate = parseJailDate(releaseDateTime);
+      const releaseDate = parseBookingDate(releaseDateTime);
       if (!releaseDate) return null;
       const bookings = bookMap.get(name) || [];
       let best = null, bestDate = null;
       for (const b of bookings) {
         if (releaseLineIdx !== null && b.lineIdx >= releaseLineIdx) continue;
-        const bd = parseJailDate(b.bookDate);
+        const bd = parseBookingDate(b.bookDate);
         if (!bd || bd >= releaseDate) continue;
         if (!bestDate || bd > bestDate) { best = b.bookDate; bestDate = bd; }
       }
@@ -474,7 +522,7 @@ app.get('/api/admin/backfill-time-served', (req, res) => {
       const line = logLines[i];
       if (!line.startsWith('RELEASED | ')) continue;
 
-      const m = line.match(/^RELEASED \| (.+?) \| Released: (\d{1,2}\/\d{1,2}\/\d{2,4} \d{1,2}:\d{2}:\d{2})/);
+      const m = line.match(new RegExp(`^RELEASED \\| (.+?) \\| Released: ${dateToken}`));
       if (!m) { logSkipped++; continue; }
 
       const name = m[1].trim();
@@ -491,7 +539,7 @@ app.get('/api/admin/backfill-time-served', (req, res) => {
       } else {
         // Insert time served right after the release date/time
         newLine = line.replace(
-          /(Released: \d{1,2}\/\d{1,2}\/\d{2,4} \d{1,2}:\d{2}:\d{2})(\s*\|)/,
+          new RegExp(`(Released: ${dateToken})(\\s*\\|)`),
           '$1 | Time served: ' + computed + '$2'
         );
       }
@@ -960,18 +1008,12 @@ if (fs.existsSync(logFile)) {
 
 // Helper function to extract date from log line
 function extractDateFromLine(line) {
-  // Extract date from line like "Name | Booked: 01/18/26 01:45:00 | Charges: ..."
-  const bookedMatch = line.match(/Booked:\s+(\d{2}\/\d{2}\/\d{2}\s+\d{2}:\d{2}:\d{2})/);
-  if (bookedMatch) {
-    return parseBookingDate(bookedMatch[1]);
-  }
-  
-  // Also check for "Released:" format
-  const releasedMatch = line.match(/Released:\s+(\d{2}\/\d{2}\/\d{2}\s+\d{2}:\d{2}:\d{2})/);
-  if (releasedMatch) {
-    return parseBookingDate(releasedMatch[1]);
-  }
-  
+  const booked = extractLabeledDate(line, 'Booked');
+  if (booked) return booked;
+
+  const released = extractLabeledDate(line, 'Released');
+  if (released) return released;
+
   // If no valid date found, return current date
   return new Date();
 }
@@ -1469,11 +1511,12 @@ app.get('/api/history', (req, res) => {
       
       for (const line of lines) {
         if (line.startsWith('BOOKED |') || line.startsWith('RELEASED |')) {
-          // Extract date from line
-          const dateMatch = line.match(/(?:Booked|Released):\s+(\d{2}\/\d{2}\/\d{2})/);
+          // Extract date from line, normalized to "YYYY-MM-DD" regardless of
+          // whether the line is in ISO or legacy "MM/DD/YY" format.
+          const dateMatch = line.match(/(?:Booked|Released):\s+(\d{4}-\d{2}-\d{2}|\d{1,2}\/\d{1,2}\/\d{2,4})/);
           if (dateMatch) {
-            const dateKey = dateMatch[1]; // Use date as key
-            
+            const dateKey = dateMatch[1].includes('/') ? toIsoDateTime(dateMatch[1]) : dateMatch[1];
+
             if (!entriesByDate[dateKey]) {
               entriesByDate[dateKey] = { date: dateKey, booked: [], released: [] };
             }
@@ -1488,13 +1531,7 @@ app.get('/api/history', (req, res) => {
       }
       
       // Convert to array and sort by date (newest first)
-      entries = Object.values(entriesByDate).sort((a, b) => {
-        const [aMonth, aDay, aYear] = a.date.split('/').map(Number);
-        const [bMonth, bDay, bYear] = b.date.split('/').map(Number);
-        const aDate = new Date(2000 + aYear, aMonth - 1, aDay);
-        const bDate = new Date(2000 + bYear, bMonth - 1, bDay);
-        return bDate - aDate;
-      });
+      entries = Object.values(entriesByDate).sort((a, b) => new Date(b.date) - new Date(a.date));
     }
   } catch (e) {
     console.error('History parse error:', e);
@@ -1502,8 +1539,12 @@ app.get('/api/history', (req, res) => {
 
   function buildInmateRow(line, type = 'booked') {
     const namePart = line.split(' | ')[0] || 'Unknown';
-    const timeMatch = line.match(/(?:Booked|Released):\s+(\d{2}\/\d{2}\/\d{2}\s+\d{2}:\d{2}:\d{2})/);
-    const time = timeMatch ? timeMatch[1] : '';
+    // Reconstruct "MM/DD/YY HH:MM:SS" for display regardless of whether the
+    // line is stored in ISO or legacy format. Requires a time component, so
+    // date-only entries (time genuinely unknown) fall through to blank, same
+    // as before the ISO migration.
+    const timeMatch = line.match(/(?:Booked|Released):\s+(\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}|\d{1,2}\/\d{1,2}\/\d{2,4}\s+\d{1,2}:\d{2}:\d{2})/);
+    const time = timeMatch ? formatShortDateTime(parseBookingDate(timeMatch[1])) : '';
     const chargesMatch = line.match(/Charges:\s+(.+)$/);
     const charges = chargesMatch ? chargesMatch[1].trim() : '';
     const timeServedMatch = line.match(/Time served:\s+([^|(]+)/);
@@ -1532,8 +1573,9 @@ app.get('/api/history', (req, res) => {
   }
 
   const entriesHtml = entries.length > 0 ? entries.map(entry => {
-    const [month, day, year] = entry.date.split('/');
-    const displayDate = `${month}/${day}/20${year}`;
+    // entry.date is "YYYY-MM-DD"; reformat to "MM/DD/YYYY" for display.
+    const [year, month, day] = entry.date.split('-');
+    const displayDate = `${month}/${day}/${year}`;
     const bookedHtml = entry.booked.length > 0 ?
       '<div class="section-label booked">Booked (' + entry.booked.length + ')</div>' +
       entry.booked.map(b => buildInmateRow(b, 'booked')).join('') : '';
@@ -1678,13 +1720,10 @@ app.get('/api/stats', (req, res) => {
       
       // Find first dated entry
       for (const line of lines) {
-        const dateMatch = line.match(/(?:Booked|Released):\s+(\d{2}\/\d{2}\/\d{2})/);
-        if (dateMatch) {
-          const [month, day, year] = dateMatch[1].split('/');
-          const fullYear = 2000 + parseInt(year);
-          const firstDate = new Date(fullYear, parseInt(month) - 1, parseInt(day));
+        const firstDate = extractLabeledDate(line, 'Booked') || extractLabeledDate(line, 'Released');
+        if (firstDate) {
           dataCollectionStart = firstDate;
-          
+
           // Calculate days since then
           const now = new Date();
           daysOfData = Math.floor((now - firstDate) / (1000 * 60 * 60 * 24));
@@ -1738,14 +1777,8 @@ app.get('/api/stats', (req, res) => {
         totalBookings++;
         
         // Extract date
-        const dateMatch = trimmedLine.match(/Booked:\s+(\d{2}\/\d{2}\/\d{2})\s+(\d{2}:\d{2}:\d{2})/);
-        if (dateMatch) {
-          const dateStr = dateMatch[1]; // "01/18/26"
-          const timeStr = dateMatch[2];
-          const [month, day, year] = dateStr.split('/');
-          const [hour, min, sec] = timeStr.split(':');
-          const fullYear = 2000 + parseInt(year);
-          const date = new Date(fullYear, parseInt(month) - 1, parseInt(day), parseInt(hour), parseInt(min), parseInt(sec));
+        const date = extractLabeledDate(trimmedLine, 'Booked');
+        if (date) {
           bookingDates.push(date);
           popEvents.push({ ts: date, delta: 1 });
         }
@@ -1773,14 +1806,8 @@ app.get('/api/stats', (req, res) => {
         }
         
         // Extract release date
-        const dateMatch = trimmedLine.match(/Released:\s+(\d{2}\/\d{2}\/\d{2})\s+(\d{2}:\d{2}:\d{2})/);
-        if (dateMatch) {
-          const dateStr = dateMatch[1]; // "01/18/26"
-          const timeStr = dateMatch[2];
-          const [month, day, year] = dateStr.split('/');
-          const [hour, min, sec] = timeStr.split(':');
-          const fullYear = 2000 + parseInt(year);
-          const date = new Date(fullYear, parseInt(month) - 1, parseInt(day), parseInt(hour), parseInt(min), parseInt(sec));
+        const date = extractLabeledDate(trimmedLine, 'Released');
+        if (date) {
           releaseDates.push(date);
           popEvents.push({ ts: date, delta: -1 });
         }
@@ -1839,37 +1866,23 @@ const releasesByName = new Map();
 for (const line of lines) {
   if (line.startsWith('BOOKED |')) {
     const nameMatch = line.match(/BOOKED \| ([^|]+) \|/);
-    const dateMatch = line.match(/Booked:\s+(\d{2}\/\d{2}\/\d{2})\s+(\d{2}:\d{2}:\d{2})/);
-    
-    if (nameMatch && dateMatch) {
+    const bookDate = extractLabeledDate(line, 'Booked');
+
+    if (nameMatch && bookDate) {
       const name = nameMatch[1].trim();
-      const [dateStr, timeStr] = [dateMatch[1], dateMatch[2]];
-      const [month, day, year] = dateStr.split('/');
-      const [hours, minutes, seconds] = timeStr.split(':');
-      const fullYear = 2000 + parseInt(year);
-      const bookDate = new Date(fullYear, parseInt(month) - 1, parseInt(day), 
-                                parseInt(hours), parseInt(minutes), parseInt(seconds));
-      
       if (!bookingsByName.has(name)) {
         bookingsByName.set(name, []);
       }
       bookingsByName.get(name).push(bookDate);
     }
   }
-  
+
   else if (line.startsWith('RELEASED |')) {
     const nameMatch = line.match(/RELEASED \| ([^|]+) \|/);
-    const dateMatch = line.match(/Released:\s+(\d{2}\/\d{2}\/\d{2})\s+(\d{2}:\d{2}:\d{2})/);
-    
-    if (nameMatch && dateMatch) {
+    const releaseDate = extractLabeledDate(line, 'Released');
+
+    if (nameMatch && releaseDate) {
       const name = nameMatch[1].trim();
-      const [dateStr, timeStr] = [dateMatch[1], dateMatch[2]];
-      const [month, day, year] = dateStr.split('/');
-      const [hours, minutes, seconds] = timeStr.split(':');
-      const fullYear = 2000 + parseInt(year);
-      const releaseDate = new Date(fullYear, parseInt(month) - 1, parseInt(day), 
-                                   parseInt(hours), parseInt(minutes), parseInt(seconds));
-      
       if (!releasesByName.has(name)) {
         releasesByName.set(name, []);
       }
@@ -1939,14 +1952,9 @@ const avgStayDays = stayCount > 0 ? Math.round((totalStayHours / stayCount) / 24
           const bail = parseFloat(bailMatch[1].replace(/,/g, ''));
           if (bail > 0) {
             // Check if this month
-            const dateMatch = line.match(/Released:\s+(\d{2}\/\d{2}\/\d{2})/);
-            if (dateMatch) {
-              const [rm, rd, ry] = dateMatch[1].split('/');
-              const releaseYear = 2000 + parseInt(ry);
-              const releaseMonth = parseInt(rm) - 1;
-              if (releaseYear === nowStats.getFullYear() && releaseMonth === nowStats.getMonth()) {
-                totalBailThisMonth += bail;
-              }
+            const releaseDate = extractLabeledDate(line, 'Released');
+            if (releaseDate && releaseDate.getFullYear() === nowStats.getFullYear() && releaseDate.getMonth() === nowStats.getMonth()) {
+              totalBailThisMonth += bail;
             }
             // Correlate bail with charges
             const nm = line.match(/RELEASED \| ([^|]+) \|/);
@@ -2017,13 +2025,8 @@ const avgStayDays = stayCount > 0 ? Math.round((totalStayHours / stayCount) / 24
       const currentBookings = extractBookings(content);
       for (const [, booking] of currentBookings.entries()) {
         if (booking.bookDate && booking.bookDate !== 'Unknown') {
-          const parts = booking.bookDate.split(' ');
-          if (parts.length === 2) {
-            const [datePart, timePart] = parts;
-            const [bm, bd, by] = datePart.split('/');
-            const [bh, bmin, bs] = timePart.split(':');
-            const byr = by.length === 2 ? 2000 + parseInt(by) : parseInt(by);
-            const bookDate = new Date(byr, parseInt(bm)-1, parseInt(bd), parseInt(bh), parseInt(bmin), parseInt(bs));
+          const bookDate = parseBookingDate(booking.bookDate);
+          if (bookDate) {
             const daysIn = (nowStats - bookDate) / (1000 * 60 * 60 * 24);
             if (daysIn > longestDays) {
               longestDays = daysIn;
@@ -2544,12 +2547,7 @@ app.get('/api/deepstats', async (req, res) => {
     for (const e of history) {
       const bail = parseFloat((e.bail || '$0').replace(/[$,]/g, ''));
       const normalizedType = normalizeReleaseType(e.releaseType);
-      let rd = null;
-      if (e.releaseDateTime) {
-        const [dp] = e.releaseDateTime.split(' ');
-        const [m, d, y] = dp.split('/');
-        rd = new Date(2000 + parseInt(y), parseInt(m)-1, parseInt(d));
-      }
+      const rd = e.releaseDateTime ? parseBookingDate(e.releaseDateTime) : null;
       if (bail > 0) {
         if (rd) {
           if (rd.toDateString() === todayStr) bailToday += bail;
@@ -2627,12 +2625,10 @@ app.get('/api/deepstats', async (req, res) => {
     const relDays  = { Sun:0, Mon:0, Tue:0, Wed:0, Thu:0, Fri:0, Sat:0 };
     const relHours = Array(24).fill(0);
     for (const e of history) {
-      const [dp, tp] = (e.releaseDateTime || '').split(' ');
-      if (dp && tp) {
-        const [m, d, y] = dp.split('/');
-        const dt = new Date(2000 + parseInt(y), parseInt(m)-1, parseInt(d));
+      const dt = e.releaseDateTime ? parseBookingDate(e.releaseDateTime) : null;
+      if (dt) {
         relDays[['Sun','Mon','Tue','Wed','Thu','Fri','Sat'][dt.getDay()]]++;
-        const hr = parseInt(tp.split(':')[0]);
+        const hr = dt.getHours();
         if (hr >= 0 && hr < 24) relHours[hr]++;
       }
     }
@@ -2648,14 +2644,10 @@ app.get('/api/deepstats', async (req, res) => {
         const parsed = await PDFParser(buf);
         for (const [, b] of extractBookings(parsed.text).entries()) {
           if (b.bookDate && b.bookDate !== 'Unknown') {
-            const [dp, tp] = b.bookDate.split(' ');
-            if (dp && tp) {
-              const [bm, bd, by] = dp.split('/');
-              const [bh, bmin] = tp.split(':');
-              const byr = by.length === 2 ? 2000 + parseInt(by) : parseInt(by);
-              const dt = new Date(byr, parseInt(bm)-1, parseInt(bd), parseInt(bh), parseInt(bmin));
+            const dt = parseBookingDate(b.bookDate);
+            if (dt) {
               bookDays[['Sun','Mon','Tue','Wed','Thu','Fri','Sat'][dt.getDay()]]++;
-              const hr = parseInt(bh);
+              const hr = dt.getHours();
               if (hr >= 0 && hr < 24) bookHours[hr]++;
               const daysIn = (now - dt) / 86400000;
               if (daysIn > currentLongestDays) {
@@ -2827,7 +2819,7 @@ function getDeepStatsHTML(d) {
       <td class="val">${e.name}</td>
       <td style="color:#C8C87A;font-weight:bold;">${$(e.bailAmt)}</td>
       <td><span class="chip">${e.releaseType || '?'}</span></td>
-      <td class="dim">${e.releaseDateTime || '—'}</td>
+      <td class="dim">${e.releaseDateTime ? formatShortDateTime(parseBookingDate(e.releaseDateTime)) || '—' : '—'}</td>
       <td style="font-size:0.7rem;">${e.charges.length ? e.charges.join(', ') : '<span class="dim">—</span>'}</td>
     </tr>`).join('')}
     ${d.top10Bail.length === 0 ? '<tr><td colspan="6" class="dim">No bail data yet</td></tr>' : ''}
@@ -2898,7 +2890,7 @@ function getDeepStatsHTML(d) {
       <div class="v" style="font-size:1.2rem;">${d.currentLongest.days}d</div>
       <div class="l">Current Longest Stay</div>
       <div style="margin-top:0.4rem;font-size:0.7rem;color:#C4D8E6;font-family:'Fake Receipt','Courier New',monospace;">${d.currentLongest.name}</div>
-      <div style="font-size:0.65rem;color:#6A8A96;">In since ${d.currentLongest.bookDate}</div>
+      <div style="font-size:0.65rem;color:#6A8A96;">In since ${formatShortDateTime(parseBookingDate(d.currentLongest.bookDate))}</div>
     </div>` : ''}
   </div>
 
