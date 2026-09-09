@@ -11,3 +11,4 @@ node_modules/
 # Data files (persisted on Railway volume at runtime)
 *.txt
 *.pdf
+*_backup.json
