@@ -601,6 +601,23 @@ app.get('/api/debug/reset', (req, res) => {
 });
 
 // Debug Log Tail endpoint
+// Temporary: full change_log.txt download, used to pull a real sample for
+// testing the ISO date migration before it ever touches production data.
+// Remove once the migration is done.
+app.get('/api/debug/export-log', (req, res) => {
+  try {
+    const logFile = path.join(STORAGE_DIR, 'change_log.txt');
+    if (!fs.existsSync(logFile)) {
+      return res.status(404).send('No log file found');
+    }
+    res.setHeader('Content-Type', 'text/plain');
+    res.setHeader('Content-Disposition', 'attachment; filename="change_log_export.txt"');
+    res.send(fs.readFileSync(logFile, 'utf-8'));
+  } catch (error) {
+    res.status(500).send('Error: ' + error.message);
+  }
+});
+
 app.get('/api/debug/log-tail', (req, res) => {
   try {
     const logFile = path.join(STORAGE_DIR, 'change_log.txt');
