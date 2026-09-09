@@ -30,9 +30,9 @@ const RELEASE_STATS_HISTORY_FILE = path.join(STORAGE_DIR, 'release_stats_history
 // The landing page aggregates current population and changes-detected
 // counts across all four county monitors, not just Mason's own data.
 const SIBLING_MONITORS = [
-  { name: 'kitsap',   base: 'https://theonlytacocat.github.io/ksco-scraper/data' },
-  { name: 'pierce',   base: 'https://theonlytacocat.github.io/pierce-jail-roster/data' },
-  { name: 'thurston', base: 'https://theonlytacocat.github.io/thurston-jail-roster/data' },
+  { name: 'kitsap',   base: 'https://recordwatch.github.io/ksco-scraper/data' },
+  { name: 'pierce',   base: 'https://recordwatch.github.io/pierce-jail-roster/data' },
+  { name: 'thurston', base: 'https://recordwatch.github.io/thurston-jail-roster/data' },
 ];
 const SIBLING_CACHE_TTL_MS = 5 * 60 * 1000;
 const siblingCache = {}; // name -> { inCustody, changes, fetchedAt }
@@ -877,9 +877,9 @@ if (fs.existsSync(logFile)) {
     </div>
     <div class="nav-section">
       <a href="/api/history" class="nav-btn">Mason County Jail Roster Monitor</a>
-      <a href="https://theonlytacocat.github.io/ksco-scraper/" target="_blank" rel="noopener noreferrer" class="nav-btn">Visit Kitsap County Jail Monitor</a>
-      <a href="https://theonlytacocat.github.io/pierce-jail-roster/" target="_blank" rel="noopener noreferrer" class="nav-btn">Visit Pierce County Jail Monitor</a>
-      <a href="https://theonlytacocat.github.io/thurston-jail-roster/" target="_blank" rel="noopener noreferrer" class="nav-btn">Visit Thurston County Jail Monitor</a>
+      <a href="https://recordwatch.github.io/ksco-scraper/" target="_blank" rel="noopener noreferrer" class="nav-btn">Visit Kitsap County Jail Monitor</a>
+      <a href="https://recordwatch.github.io/pierce-jail-roster/" target="_blank" rel="noopener noreferrer" class="nav-btn">Visit Pierce County Jail Monitor</a>
+      <a href="https://recordwatch.github.io/thurston-jail-roster/" target="_blank" rel="noopener noreferrer" class="nav-btn">Visit Thurston County Jail Monitor</a>
     </div>
     <details class="status">
       <summary>

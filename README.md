@@ -25,8 +25,8 @@ Mason County Sheriff's Office — public records PDF updated every 48 hours:
 
 ## Related Monitors
 
-- [Kitsap County Jail Monitor](https://theonlytacocat.github.io/ksco-scraper/)
-- [Pierce County Jail Monitor](https://theonlytacocat.github.io/pierce-jail-roster/)
+- [Kitsap County Jail Monitor](https://recordwatch.github.io/ksco-scraper/)
+- [Pierce County Jail Monitor](https://recordwatch.github.io/pierce-jail-roster/)
 
 ## Stack
 
