@@ -1,0 +1,13 @@
+node_modules/
+.env
+*.log
+
+# Editor / tool caches
+.claude/
+.mastra/
+.clj-kondo/
+.lsp/
+
+# Data files (persisted on Railway volume at runtime)
+*.txt
+*.pdf
