@@ -69,6 +69,61 @@ router.get('/api/admin/migrate-to-sqlite', (req, res) => {
   }
 });
 
+// One-time (but safely re-runnable) repair: some pasted merges via the old
+// /api/admin/merge-logs endpoint concatenated two BOOKED/RELEASED records
+// onto a single line with no separating newline (the pasted text lacked a
+// trailing newline, so appendFileSync('\n' + body) joined it straight onto
+// the next record). That garbles /api/history, since the second record's
+// text ends up inside the first record's Charges field. Splits any line
+// containing 2+ "BOOKED |" / "RELEASED |" markers back into separate lines
+// at each marker boundary. Backs up the file before writing. No-op (and no
+// backup written) if nothing is corrupted, so it's safe to re-run.
+router.get('/api/admin/split-merged-log-lines', (req, res) => {
+  try {
+    const logFile = path.join(STORAGE_DIR, 'change_log.txt');
+    if (!fs.existsSync(logFile)) {
+      return res.send('No log file found');
+    }
+
+    const content = fs.readFileSync(logFile, 'utf-8');
+    const lines = content.split('\n');
+
+    let linesFixed = 0, recordsRecovered = 0;
+    const fixedLines = [];
+    for (const line of lines) {
+      const markerCount = (line.match(/(?:BOOKED|RELEASED) \|/g) || []).length;
+      if (markerCount < 2) {
+        fixedLines.push(line);
+        continue;
+      }
+      const parts = line.split(/(?=(?:BOOKED|RELEASED) \|)/);
+      linesFixed++;
+      recordsRecovered += parts.length - 1;
+      fixedLines.push(...parts);
+    }
+
+    if (linesFixed === 0) {
+      return res.send(`<!DOCTYPE html><html><body style="font-family:monospace;background:#0a1a1f;color:#C4D8E6;padding:2rem;">
+        <h2>✓ No merged lines found</h2>
+        <p>Scanned ${lines.length} lines — none had multiple BOOKED/RELEASED markers. Nothing changed, no backup written.</p>
+      </body></html>`);
+    }
+
+    fs.writeFileSync(logFile + '.backup-splitlines-' + Date.now(), content);
+    fs.writeFileSync(logFile, fixedLines.join('\n'));
+
+    res.send(`<!DOCTYPE html><html><body style="font-family:monospace;background:#0a1a1f;color:#C4D8E6;padding:2rem;">
+      <h2>✓ Merged Log Lines Split</h2>
+      <p><b>${linesFixed}</b> corrupted line(s) found, recovering <b>${recordsRecovered}</b> hidden record(s).</p>
+      <p><b>change_log.txt:</b> ${lines.length} → ${fixedLines.length} lines</p>
+      <p style="color:#6A8A96;">Original backed up before changes (.backup-splitlines-&lt;timestamp&gt;).</p>
+      <a href="/api/history" style="color:#4B8FA8;">→ View History</a>
+    </body></html>`);
+  } catch (e) {
+    res.status(500).send('Error: ' + e.message);
+  }
+});
+
 // this is where im putting the release stats debug endpoint
 router.get('/api/debug/release-pdf-raw', async (req, res) => {
   try {
