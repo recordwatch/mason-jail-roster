@@ -2,6 +2,7 @@ import fs from 'fs';
 import PDFParser from 'pdf-parse';
 import { parseBookingDate, toIsoDateTime, extractLabeledDate } from './utils.js';
 import { RELEASE_STATS_URL, RELEASE_STATS_HISTORY_FILE, RELEASE_TYPE_NAMES } from './config.js';
+import { insertRelease } from './events.js';
 
 async function fetchReleaseStats() {
   try {
@@ -91,6 +92,17 @@ async function fetchReleaseStats() {
       }
     } catch (e) {
       console.error('Error saving release stats history:', e);
+    }
+
+    // Dual-write: also insert into SQLite. The releases table's UNIQUE
+    // constraint on (name, release_date_time) handles dedup, same as the
+    // existingKeys check above does for the JSON file.
+    try {
+      for (const [name, info] of releaseMap.entries()) {
+        insertRelease({ name, releaseDateTime: info.releaseDateTime, releaseType: info.releaseType, timeServed: info.timeServed, bail: info.bail });
+      }
+    } catch (e) {
+      console.error('Error saving release stats to SQLite:', e);
     }
 
     return releaseMap;

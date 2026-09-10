@@ -31,12 +31,12 @@ import {
   PORT,
   PDF_URL,
   STORAGE_DIR,
-  RELEASE_STATS_HISTORY_FILE,
   SIBLING_MONITORS,
   RELEASE_TYPE_NAMES
 } from './config.js';
 import { requireAdminKey } from './middleware.js';
 import adminRouter from './routes/admin.js';
+import { insertEventsFromLine, getAllEventLines, getAllReleases } from './events.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
@@ -104,13 +104,8 @@ ensureStorageDir();
 // Changelog endpoint for frontend
 app.get('/api/changelog', (req, res) => {
   try {
-    const logFile = path.join(STORAGE_DIR, 'change_log.txt');
-    if (fs.existsSync(logFile)) {
-      const content = fs.readFileSync(logFile, 'utf-8');
-      res.json({ success: true, log: content });
-    } else {
-      res.json({ success: true, log: '' });
-    }
+    const log = getAllEventLines().join('\n');
+    res.json({ success: true, log });
   } catch (error) {
     console.error('Changelog error:', error);
     res.status(500).json({ success: false, error: error.message });
@@ -144,14 +139,7 @@ app.get('/api/status', async (req, res) => {
       inmateCount = bookingMatches ? bookingMatches.length : 0;
     }
 
-    const logFile = path.join(dataDir, "change_log.txt");
-if (fs.existsSync(logFile)) {
-  const content = fs.readFileSync(logFile, "utf-8");
-  // Count BOOKED and RELEASED entries
-  const bookedCount = (content.match(/^BOOKED \|/gm) || []).length;
-  const releasedCount = (content.match(/^RELEASED \|/gm) || []).length;
-  changeCount = bookedCount + releasedCount;
-}
+    changeCount = getAllEventLines().length;
 
     const metricsFile = path.join(dataDir, "metrics.json");
     let metrics = { statusViews: 0, historyViews: 0, emailViews: 0 };
@@ -481,7 +469,13 @@ app.get('/api/run', async (req, res) => {
     }
 
     fs.appendFileSync(logFile, logEntry);
-    
+
+    // Dual-write: also insert into SQLite, parsing the exact same text that
+    // was just appended to change_log.txt so both stores can never drift.
+    for (const line of logEntry.split('\n')) {
+      if (line.trim()) insertEventsFromLine(line);
+    }
+
     // Add separate entry for updated release details if any
     if (updatedReleases.length > 0) {
       const updateEntry =
@@ -752,45 +746,37 @@ app.get('/legislative', (req, res) => {
 
 // History page - UPDATED for new log format
 app.get('/api/history', (req, res) => {
-  const dataDir = STORAGE_DIR;
-  let changeLog = "";
   let entries = [];
 
   try {
-    const logFile = path.join(dataDir, "change_log.txt");
-    if (fs.existsSync(logFile)) {
-      changeLog = fs.readFileSync(logFile, "utf-8");
-      
-      // Parse new format: just lines with BOOKED | or RELEASED |
-      const lines = changeLog.split('\n').filter(l => l.trim());
-      
-      // Group by date
-      const entriesByDate = {};
-      
-      for (const line of lines) {
-        if (line.startsWith('BOOKED |') || line.startsWith('RELEASED |')) {
-          // Extract date from line, normalized to "YYYY-MM-DD" regardless of
-          // whether the line is in ISO or legacy "MM/DD/YY" format.
-          const dateMatch = line.match(/(?:Booked|Released):\s+(\d{4}-\d{2}-\d{2}|\d{1,2}\/\d{1,2}\/\d{2,4})/);
-          if (dateMatch) {
-            const dateKey = dateMatch[1].includes('/') ? toIsoDateTime(dateMatch[1]) : dateMatch[1];
+    const lines = getAllEventLines();
 
-            if (!entriesByDate[dateKey]) {
-              entriesByDate[dateKey] = { date: dateKey, booked: [], released: [] };
-            }
-            
-            if (line.startsWith('BOOKED |')) {
-              entriesByDate[dateKey].booked.push(line.replace('BOOKED | ', ''));
-            } else {
-              entriesByDate[dateKey].released.push(line.replace('RELEASED | ', ''));
-            }
+    // Group by date
+    const entriesByDate = {};
+
+    for (const line of lines) {
+      if (line.startsWith('BOOKED |') || line.startsWith('RELEASED |')) {
+        // Extract date from line, normalized to "YYYY-MM-DD" regardless of
+        // whether the line is in ISO or legacy "MM/DD/YY" format.
+        const dateMatch = line.match(/(?:Booked|Released):\s+(\d{4}-\d{2}-\d{2}|\d{1,2}\/\d{1,2}\/\d{2,4})/);
+        if (dateMatch) {
+          const dateKey = dateMatch[1].includes('/') ? toIsoDateTime(dateMatch[1]) : dateMatch[1];
+
+          if (!entriesByDate[dateKey]) {
+            entriesByDate[dateKey] = { date: dateKey, booked: [], released: [] };
+          }
+
+          if (line.startsWith('BOOKED |')) {
+            entriesByDate[dateKey].booked.push(line.replace('BOOKED | ', ''));
+          } else {
+            entriesByDate[dateKey].released.push(line.replace('RELEASED | ', ''));
           }
         }
       }
-      
-      // Convert to array and sort by date (newest first)
-      entries = Object.values(entriesByDate).sort((a, b) => new Date(b.date) - new Date(a.date));
     }
+
+    // Convert to array and sort by date (newest first)
+    entries = Object.values(entriesByDate).sort((a, b) => new Date(b.date) - new Date(a.date));
   } catch (e) {
     console.error('History parse error:', e);
   }
@@ -938,33 +924,9 @@ app.get('/api/history', (req, res) => {
 // Stats Dashboard - UPDATED for new format
 app.get('/api/stats', (req, res) => {
   try {
-    const logFile = path.join(STORAGE_DIR, 'change_log.txt');
+    const lines = getAllEventLines();
 
-     // THIS SECTION is going to add info about how l ong stats have been documented,. 
-    // Get data collection start date from first entry in log
-    let dataCollectionStart = null;
-    let daysOfData = 0;
-    
-    if (fs.existsSync(logFile)) {
-      const logContent = fs.readFileSync(logFile, 'utf-8');
-      const lines = logContent.split('\n');
-      
-      // Find first dated entry
-      for (const line of lines) {
-        const firstDate = extractLabeledDate(line, 'Booked') || extractLabeledDate(line, 'Released');
-        if (firstDate) {
-          dataCollectionStart = firstDate;
-
-          // Calculate days since then
-          const now = new Date();
-          daysOfData = Math.floor((now - firstDate) / (1000 * 60 * 60 * 24));
-          break;
-        }
-      }
-    }
-    // ↑↑↑ END OF NEW SECTION
-
-    if (!fs.existsSync(logFile)) {
+    if (lines.length === 0) {
       return res.send(getStatsHTML({
         totalBookings: 0,
         totalReleases: 0,
@@ -986,8 +948,18 @@ app.get('/api/stats', (req, res) => {
       }));
     }
 
-    const logContent = fs.readFileSync(logFile, 'utf-8');
-    
+    // Get data collection start date from first entry in log
+    let dataCollectionStart = null;
+    let daysOfData = 0;
+    for (const line of lines) {
+      const firstDate = extractLabeledDate(line, 'Booked') || extractLabeledDate(line, 'Released');
+      if (firstDate) {
+        dataCollectionStart = firstDate;
+        daysOfData = Math.floor((new Date() - firstDate) / (1000 * 60 * 60 * 24));
+        break;
+      }
+    }
+
     // Parse the log file for NEW format
     let totalBookings = 0;
     let totalReleases = 0;
@@ -998,8 +970,6 @@ app.get('/api/stats', (req, res) => {
     let stayDurations = [];
     let popEvents = []; // {ts: Date, delta: 1|-1} for avg population
 
-    const lines = logContent.split('\n');
-    
     for (const line of lines) {
       const trimmedLine = line.trim();
       
@@ -1208,12 +1178,12 @@ const avgStayDays = stayCount > 0 ? Math.round((totalStayHours / stayCount) / 24
       .sort((a, b) => b.avgBail - a.avgBail)
       .slice(0, 5);
 
-    // Precise time served and release types from history file
+    // Precise time served and release types from history
     let historyTimeMinutes = [];
     let finalReleaseTypes = releaseTypeCounts;
-    if (fs.existsSync(RELEASE_STATS_HISTORY_FILE)) {
+    {
       try {
-        const history = JSON.parse(fs.readFileSync(RELEASE_STATS_HISTORY_FILE, 'utf-8'));
+        const history = getAllReleases();
         const historyTypeCounts = {};
         for (const entry of history) {
           const tsMatch = (entry.timeServed || '').match(/(\d+)d(\d+)h(\d+)m/);
@@ -1671,29 +1641,22 @@ function getStatsHTML(stats) {
 // ── DEEP STATS (unlisted admin page) ─────────────────────────────────────────
 app.get('/api/deepstats', async (req, res) => {
   try {
-    const logFile = path.join(STORAGE_DIR, 'change_log.txt');
-
     // Load history
-    let history = [];
-    if (fs.existsSync(RELEASE_STATS_HISTORY_FILE)) {
-      try { history = JSON.parse(fs.readFileSync(RELEASE_STATS_HISTORY_FILE, 'utf-8')); } catch (e) {}
-    }
+    const history = getAllReleases();
 
     // Build name→charges and booked-names list from change log
     const nameToCharges = new Map();
     const bookedNamesList = [];
-    if (fs.existsSync(logFile)) {
-      for (const line of fs.readFileSync(logFile, 'utf-8').split('\n')) {
-        if (line.startsWith('BOOKED |')) {
-          const nm = line.match(/BOOKED \| ([^|]+) \|/);
-          const ch = line.match(/Charges:\s+(.+)/);
-          if (nm) {
-            const name = nm[1].trim();
-            bookedNamesList.push(name);
-            if (ch && !nameToCharges.has(name)) {
-              const charges = ch[1].split(',').map(c => normalizeCharge(c.trim())).filter(c => c && c !== 'None listed');
-              if (charges.length) nameToCharges.set(name, charges);
-            }
+    for (const line of getAllEventLines()) {
+      if (line.startsWith('BOOKED |')) {
+        const nm = line.match(/BOOKED \| ([^|]+) \|/);
+        const ch = line.match(/Charges:\s+(.+)/);
+        if (nm) {
+          const name = nm[1].trim();
+          bookedNamesList.push(name);
+          if (ch && !nameToCharges.has(name)) {
+            const charges = ch[1].split(',').map(c => normalizeCharge(c.trim())).filter(c => c && c !== 'None listed');
+            if (charges.length) nameToCharges.set(name, charges);
           }
         }
       }
