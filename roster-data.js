@@ -208,17 +208,41 @@ function normalizeReleaseType(code) {
 // Normalize charge strings to collapse near-duplicates
 function normalizeCharge(charge) {
   if (!charge) return '';
-  // Strip leading RCW codes (e.g. "46.61.021 DUI ALCOHOL OR DRUGS" → "DUI ALCOHOL OR DRUGS")
-  let c = charge.trim().replace(/^\d+\.\d+[\.\d]*\s+/, '').trim();
+  // Strip a leading RCW-style statute citation — e.g. "46.61.021", "9A.56.360",
+  // "9a.56.360" (lowercase title letter), optionally followed by a subsection
+  // like "(6)(A)", with or without a space before the offense text — and
+  // separately strip a bare leading parenthetical qualifier like "(O)" when
+  // there's no statute code at all (e.g. "(O)Traffic Accident"). Real
+  // production data has all of these variants.
+  let c = charge.trim()
+    .replace(/^\d+[A-Za-z]?(\.\d+)*(\([^)]*\))*\s*/, '')
+    .replace(/^\([^)]*\)\s*/, '')
+    .trim();
   const u = c.toUpperCase();
 
+  // Below, several categories fold together charges that read as distinct
+  // offenses but are, per the site operator's own review of the data,
+  // the same real-world category — often two fragments of one offense
+  // description that wrapped across lines in the source PDF (see the
+  // continuation-joining fix in parser.js), other times just inconsistent
+  // labeling of the same charge across records.
   if (/^PROBATION$|PROBATION.*(VIOL|VIO)|PAROLE.*(VIOL|VIO)/.test(u))                   return 'PROBATION VIOLATION';
-  if (/^ASSAULT|SIMPLE ASSAULT/.test(u))                                                 return 'ASSAULT';
-  if (/SIMPLE POSSESSION|^SIMPLE$/.test(u))                                              return 'DRUG POSSESSION';
+  if (/^ASSAULT|SIMPLE ASSAULT|^KNIFE$/.test(u))                                        return 'ASSAULT';
+  if (/CONTROLLED SUBSTANCE|SIMPLE POSSESSION|^SIMPLE$|^POSESSION$|^POSSESSION$|^CONT SUBST$|PARAPHENALIA|PARAPHERNALIA/.test(u)) return 'DRUG POSSESSION';
   if (/^PROTECT$|VIOLATION.*(NO.CONTACT|NCO)|NO.CONTACT.*(VIOL|VIO)|PROPECT|PROTECT.*ORDER|PROTECTION.*ORDER/.test(u)) return 'PROTECTION ORDER VIOLATION';
   if (/FAILURE.TO.APPEAR|WARRANT.ARREST/.test(u))                                        return 'FAILURE TO APPEAR';
-  if (/SEX.*OFFENDER.*(FAIL|FAILURE).*REGISTER/.test(u))                                 return 'SEX OFFENDER FAIL TO REGISTER';
+  if (/SEX OFFENSE|SEX.*OFFENDER/.test(u))                                               return 'SEX OFFENSE';
   if (/STRONGARM/.test(u))                                                               return 'Robbery/Burglary (Strongarm)';
+  if (/^RESISTING$|INTERFERING.*POLICE|OBSTRUCTING.*JUSTICE|^POLICE$/.test(u))           return 'RESISTING/OBSTRUCTING LAW ENFORCEMENT';
+  if (/^BURGLARY|^RESIDENT$|UNLAWF.*ENT/.test(u))                                        return 'BURGLARY';
+  if (/^THEFT$|^PROPERTY$/.test(u))                                                      return 'THEFT';
+  if (/^THREATENING|^INTIMIDATION/.test(u))                                              return 'THREATENING/INTIMIDATION';
+  if (/^KIDNAPPING|^ABDUCTION/.test(u))                                                  return 'KIDNAPPING';
+  if (/^RECEIVE$|POSESS.*STOLEN|POSSESS.*STOLEN/.test(u))                                return 'RECEIVING/POSSESSING STOLEN PROPERTY';
+  if (/FRAUD|FORGERY|^CREDIT CARD$|IMPERSONATION/.test(u))                               return 'FRAUD';
+  if (/\bDUI\b|^ALCOHOL OFFENSE$/.test(u))                                               return 'DUI / ALCOHOL OFFENSE';
+  if (/^VEHICLE:\s*AUTOMOBILE$|FROM MTR VEH/.test(u))                                    return 'THEFT FROM MOTOR VEHICLE';
+  if (/^ALL OTHER$|^OTHER$|^NOT CLASSIFIED$/.test(u))                                    return 'OTHER';
 
   return c.trim();
 }
