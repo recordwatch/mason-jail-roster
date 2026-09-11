@@ -993,7 +993,7 @@ app.get('/api/stats', (req, res) => {
         if (chargesMatch) {
           const charges = chargesMatch[1].trim();
           if (charges && charges !== 'None listed') {
-            const chargeList = charges.split(',').map(c => normalizeCharge(c.trim())).filter(Boolean);
+            const chargeList = [...new Set(charges.split(',').map(c => normalizeCharge(c.trim())).filter(Boolean))];
             allCharges.push(...chargeList);
           }
         }
@@ -1022,7 +1022,7 @@ app.get('/api/stats', (req, res) => {
         if (chargesMatch) {
           const charges = chargesMatch[1].trim();
           if (charges && charges !== 'None listed' && charges !== 'Not Released') {
-            const chargeList = charges.split(',').map(c => normalizeCharge(c.trim())).filter(Boolean);
+            const chargeList = [...new Set(charges.split(',').map(c => normalizeCharge(c.trim())).filter(Boolean))];
             allCharges.push(...chargeList);
           }
         }
@@ -1141,7 +1141,7 @@ const avgStayDays = stayCount > 0 ? Math.round((totalStayHours / stayCount) / 24
         const nm = line.match(/BOOKED \| ([^|]+) \|/);
         const ch = line.match(/Charges:\s+(.+)/);
         if (nm && ch) {
-          const charges = ch[1].split(',').map(c => normalizeCharge(c.trim())).filter(c => c && c !== 'None listed');
+          const charges = [...new Set(ch[1].split(',').map(c => normalizeCharge(c.trim())).filter(c => c && c !== 'None listed'))];
           nameToCharges.set(nm[1].trim(), charges);
         }
       }
@@ -1710,6 +1710,7 @@ app.get('/api/deepstats', async (req, res) => {
     // Build name→charges and booked-names list from change log
     const nameToCharges = new Map();
     const bookedNamesList = [];
+    const bookDatesByName = new Map();
     for (const line of getAllEventLines()) {
       if (line.startsWith('BOOKED |')) {
         const nm = line.match(/BOOKED \| ([^|]+) \|/);
@@ -1718,8 +1719,13 @@ app.get('/api/deepstats', async (req, res) => {
           const name = nm[1].trim();
           bookedNamesList.push(name);
           if (ch && !nameToCharges.has(name)) {
-            const charges = ch[1].split(',').map(c => normalizeCharge(c.trim())).filter(c => c && c !== 'None listed');
+            const charges = [...new Set(ch[1].split(',').map(c => normalizeCharge(c.trim())).filter(c => c && c !== 'None listed'))];
             if (charges.length) nameToCharges.set(name, charges);
+          }
+          const bookDate = extractLabeledDate(line, 'Booked');
+          if (bookDate) {
+            if (!bookDatesByName.has(name)) bookDatesByName.set(name, []);
+            bookDatesByName.get(name).push(bookDate);
           }
         }
       }
@@ -1829,6 +1835,35 @@ app.get('/api/deepstats', async (req, res) => {
       .slice(0, 15)
       .map(([name, count]) => ({ name, count, charges: nameToCharges.get(name) || [] }));
 
+    // ── Recidivism ────────────────────────────────────────────────────────────
+    const totalArrestsTracked = bookedNamesList.length;
+    const distinctPeopleBooked = Object.keys(nameCounts).length;
+    const peopleBookedMoreThanOnce = Object.values(nameCounts).filter(c => c > 1).length;
+    const recidivismRate = distinctPeopleBooked > 0
+      ? Math.round((peopleBookedMoreThanOnce / distinctPeopleBooked) * 1000) / 10
+      : 0;
+
+    // Gap between consecutive arrests, in days, pooled across every repeat
+    // offender (one person with N bookings contributes N-1 gaps).
+    const daysBetweenArrests = [];
+    for (const dates of bookDatesByName.values()) {
+      if (dates.length < 2) continue;
+      const sorted = [...dates].sort((a, b) => a - b);
+      for (let i = 1; i < sorted.length; i++) {
+        const days = (sorted[i] - sorted[i - 1]) / 86400000;
+        if (days > 0) daysBetweenArrests.push(days);
+      }
+    }
+    const meanDaysBetweenArrests = daysBetweenArrests.length > 0
+      ? Math.round((daysBetweenArrests.reduce((a, b) => a + b, 0) / daysBetweenArrests.length) * 10) / 10
+      : 0;
+    const sortedGaps = [...daysBetweenArrests].sort((a, b) => a - b);
+    const gapsMid = Math.floor(sortedGaps.length / 2);
+    const medianDaysBetweenArrests = sortedGaps.length === 0 ? 0
+      : sortedGaps.length % 2 === 0
+        ? Math.round(((sortedGaps[gapsMid - 1] + sortedGaps[gapsMid]) / 2) * 10) / 10
+        : Math.round(sortedGaps[gapsMid] * 10) / 10;
+
     // ── Busiest release day/time (from history PDF) ───────────────────────────
     const relDays  = { Sun:0, Mon:0, Tue:0, Wed:0, Thu:0, Fri:0, Sat:0 };
     const relHours = Array(24).fill(0);
@@ -1878,6 +1913,8 @@ app.get('/api/deepstats', async (req, res) => {
       histMinMins: histMinMins === Infinity ? 0 : histMinMins, histMinEntry,
       histMeanMins, histMedianMins,
       frequentFlyers,
+      totalArrestsTracked, distinctPeopleBooked, peopleBookedMoreThanOnce, recidivismRate,
+      meanDaysBetweenArrests, medianDaysBetweenArrests,
       relDays, relHours, bookDays, bookHours,
       currentLongest,
     }));
@@ -1985,6 +2022,30 @@ function getDeepStatsHTML(d) {
   <a href="/api/status" style="font-size:0.75rem;color:#4B8FA8;">← status</a>
   <h1 style="margin-top:0.5rem;">Deep Analytics</h1>
   <p class="subtitle">Mason County Jail · ${total} releases in history · Unlisted</p>
+
+  <h2>Recidivism</h2>
+  <div class="cards">
+    <div class="card" style="border-left-color:#4B8FA8">
+      <div class="v">${d.recidivismRate}%</div>
+      <div class="l">Recidivism Rate</div>
+    </div>
+    <div class="card">
+      <div class="v">${d.peopleBookedMoreThanOnce.toLocaleString()} / ${d.distinctPeopleBooked.toLocaleString()}</div>
+      <div class="l">People Booked More Than Once (of Distinct People Booked)</div>
+    </div>
+    <div class="card">
+      <div class="v">${d.totalArrestsTracked.toLocaleString()}</div>
+      <div class="l">Total Arrests Tracked</div>
+    </div>
+    <div class="card" style="border-left-color:#0B7C5C">
+      <div class="v">${d.meanDaysBetweenArrests > 0 ? d.meanDaysBetweenArrests + 'd' : '—'}</div>
+      <div class="l">Mean Time Between Arrests (Repeat Offenders)</div>
+    </div>
+    <div class="card" style="border-left-color:#0B7C5C">
+      <div class="v">${d.medianDaysBetweenArrests > 0 ? d.medianDaysBetweenArrests + 'd' : '—'}</div>
+      <div class="l">Median Time Between Arrests (Repeat Offenders)</div>
+    </div>
+  </div>
 
   <h2>Release Type Breakdown</h2>
   <table>
