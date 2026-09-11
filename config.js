@@ -37,4 +37,6 @@ export const RELEASE_TYPE_NAMES = {
   JRRPR: 'Jail Release Record — Personal Recognizance',
   JRRCB: 'Jail Release Record — Cash Bail',
   SRRPR: 'Sheriff Release Record — Personal Recognizance',
+  EHM:   'Electronic Home Monitoring',
+  DMHP:  'Designated Mental Health Professional (Involuntary Treatment Act Hold)',
 };

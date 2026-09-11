@@ -114,6 +114,27 @@ StatuteOffenseCourtOffenseClass
   assert.deepEqual(b.charges, ['46.61.502DUI Alcohol or Drugs']);
 });
 
+test('joins a charge description that wraps across multiple lines instead of treating each fragment as its own charge', () => {
+  // Real production data: a long offense description wraps across several
+  // PDF lines, and the court-type marker (which is what makes a line "look
+  // like" a charge line to the parser) gets repeated on each wrapped line.
+  // Without joining, this produced three separate charges ("Burglary",
+  // "Resident", "Unlawf Ent") that always co-occurred on the same bookings —
+  // showing up as three duplicate rows with identical stats on the stats page.
+  const text = `Booking #: 77777
+Name: JONES, TERRY
+Name Number: 8888
+Book Date: 09:00:00 06/01/26
+Rel Date: No Rel Date
+StatuteOffenseCourtOffenseClass
+9A.52.025BurglarySUPR FELONY
+ResidentSUPR FELONY
+Unlawf EntSUPR FELONY
+`;
+  const b = extractBookings(text).get('77777');
+  assert.deepEqual(b.charges, ['Burglary Resident Unlawf Ent']);
+});
+
 test('falls back to "Unknown" name and skips a block with no Booking # match', () => {
   const text = `Not a real booking block at all, just noise.\n`;
   const bookings = extractBookings(text);

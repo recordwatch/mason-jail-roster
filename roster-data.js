@@ -177,11 +177,29 @@ function formatReleased(b, stats, isPending = false) {
   };
 }
 
+// Mason's release-stats PDF tags some releases with a record-source prefix
+// glued onto the same reason code used everywhere else — JRR (Jail Release
+// Record), SRR (Sheriff Release Record), IIR (a third report section) — so
+// e.g. JRRCB and IIRBM are the exact same release reason as RCB and RBM,
+// just logged from a different section. Strip the prefix and resolve back
+// to the plain code so one release reason isn't split three ways in stats.
+function resolveReleaseTypeCode(code) {
+  if (!code) return code;
+  const upper = code.toUpperCase().trim();
+  for (const prefix of ['JRR', 'SRR', 'IIR']) {
+    if (upper.startsWith(prefix) && upper.length > prefix.length) {
+      const base = 'R' + upper.slice(prefix.length);
+      if (Object.prototype.hasOwnProperty.call(RELEASE_TYPE_NAMES, base)) return base;
+    }
+  }
+  return upper;
+}
+
 // Normalize release type codes into consolidated buckets
 function normalizeReleaseType(code) {
   if (!code) return 'UNK';
-  const upper = code.toUpperCase().trim();
-  if (['RPR', 'ROA', 'JRRPR', 'SRRPR'].includes(upper)) return 'PR';
+  const upper = resolveReleaseTypeCode(code);
+  if (['RPR', 'ROA'].includes(upper)) return 'PR';
   if (['RBB', 'RCB'].includes(upper)) return 'BAIL';
   if (['RNHM', 'MIS'].includes(upper)) return 'NO_HOLD';
   return upper;
@@ -197,7 +215,7 @@ function normalizeCharge(charge) {
   if (/^PROBATION$|PROBATION.*(VIOL|VIO)|PAROLE.*(VIOL|VIO)/.test(u))                   return 'PROBATION VIOLATION';
   if (/^ASSAULT|SIMPLE ASSAULT/.test(u))                                                 return 'ASSAULT';
   if (/SIMPLE POSSESSION|^SIMPLE$/.test(u))                                              return 'DRUG POSSESSION';
-  if (/VIOLATION.*(NO.CONTACT|NCO)|NO.CONTACT.*(VIOL|VIO)|PROPECT|PROTECT.*ORDER|PROTECTION.*ORDER/.test(u)) return 'PROTECTION ORDER VIOLATION';
+  if (/^PROTECT$|VIOLATION.*(NO.CONTACT|NCO)|NO.CONTACT.*(VIOL|VIO)|PROPECT|PROTECT.*ORDER|PROTECTION.*ORDER/.test(u)) return 'PROTECTION ORDER VIOLATION';
   if (/FAILURE.TO.APPEAR|WARRANT.ARREST/.test(u))                                        return 'FAILURE TO APPEAR';
   if (/SEX.*OFFENDER.*(FAIL|FAILURE).*REGISTER/.test(u))                                 return 'SEX OFFENDER FAIL TO REGISTER';
   if (/STRONGARM/.test(u))                                                               return 'Robbery/Burglary (Strongarm)';
@@ -223,6 +241,7 @@ export {
   formatBooked,
   formatReleased,
   normalizeReleaseType,
+  resolveReleaseTypeCode,
   normalizeCharge,
   extractDateFromLine
 };

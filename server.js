@@ -13,6 +13,7 @@ import {
   formatBooked,
   formatReleased,
   normalizeReleaseType,
+  resolveReleaseTypeCode,
   normalizeCharge,
   extractDateFromLine
 } from './roster-data.js';
@@ -37,14 +38,6 @@ import {
 import { requireAdminKey } from './middleware.js';
 import adminRouter from './routes/admin.js';
 import { insertEventsFromLine, getAllEventLines, getAllReleases } from './events.js';
-
-// JRRPR (Jail Release Record) and SRRPR (Sheriff Release Record) are the same
-// personal-recognizance release as RPR, just logged from a different report
-// section — fold them into RPR so the stats page doesn't split one release
-// type into three bars.
-function foldReleaseType(code) {
-  return (code === 'JRRPR' || code === 'SRRPR') ? 'RPR' : code;
-}
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
@@ -1151,7 +1144,7 @@ const avgStayDays = stayCount > 0 ? Math.round((totalStayHours / stayCount) / 24
         // Extract release type code from "(RBB)" pattern
         const typeMatch = line.match(/\(([A-Z]{2,5})\)\s*\|/);
         if (typeMatch) {
-          const type = foldReleaseType(typeMatch[1]);
+          const type = resolveReleaseTypeCode(typeMatch[1]);
           releaseTypeCounts[type] = (releaseTypeCounts[type] || 0) + 1;
         }
 
@@ -1200,7 +1193,7 @@ const avgStayDays = stayCount > 0 ? Math.round((totalStayHours / stayCount) / 24
             if (mins > 0 && mins < 525600) historyTimeMinutes.push(mins);
           }
           if (entry.releaseType) {
-            const type = foldReleaseType(entry.releaseType);
+            const type = resolveReleaseTypeCode(entry.releaseType);
             historyTypeCounts[type] = (historyTypeCounts[type] || 0) + 1;
           }
         }
@@ -1725,7 +1718,7 @@ app.get('/api/deepstats', async (req, res) => {
       const bail = parseFloat((e.bail || '$0').replace(/[$,]/g, ''));
       const ts = (e.timeServed || '').match(/(\d+)d(\d+)h(\d+)m/);
       const mins = ts ? parseInt(ts[1])*1440 + parseInt(ts[2])*60 + parseInt(ts[3]) : 0;
-      const type = e.releaseType || 'UNK';
+      const type = e.releaseType ? resolveReleaseTypeCode(e.releaseType) : 'UNK';
       for (const charge of charges) {
         if (!charge) continue;
         if (bail > 0) {
