@@ -184,34 +184,34 @@ app.get('/api/status', async (req, res) => {
   <style>
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
     html, body { overflow-x: hidden; width: 100%; }
-    body { font-family: 'Inter', Arial, sans-serif; font-size: 8pt; background: #152220; color: #C4D8E6; min-height: 100vh; display: flex; justify-content: center; padding: 2rem 1rem; }
+    body { font-family: 'Inter', Arial, sans-serif; font-size: 8pt; background: #121A15; color: #C9D3C2; min-height: 100vh; display: flex; justify-content: center; padding: 2rem 1rem; }
     .wrapper { width: 100%; max-width: 520px; }
     .page-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.5rem; }
-    .county-label { font-size: 0.7rem; font-weight: 600; letter-spacing: 2px; text-transform: uppercase; color: #A8C4D0; }
-    .public-records { font-size: 0.7rem; font-weight: 500; letter-spacing: 1px; text-transform: uppercase; color: #6A8A96; }
-    h1 { font-family: 'Playfair Display', Georgia, serif; font-size: 2.5rem; font-weight: 700; color: #F5F0E8; letter-spacing: -1px; line-height: 1.1; margin-bottom: 1rem; }
-    .stats-bar { background: #1A3035; border: 1px solid #22443A; border-radius: 6px; padding: 0.85rem 1.25rem; display: flex; gap: 2rem; margin-bottom: 0.75rem; }
-    .stats-bar-value { font-size: 1.1rem; font-weight: 600; color: #4B8FA8; }
-    .stats-bar-label { font-size: 0.6rem; letter-spacing: 1.5px; text-transform: uppercase; color: #6A8A96; margin-top: 0.1rem; }
+    .county-label { font-size: 0.7rem; font-weight: 600; letter-spacing: 2px; text-transform: uppercase; color: #A9BE9C; }
+    .public-records { font-size: 0.7rem; font-weight: 500; letter-spacing: 1px; text-transform: uppercase; color: #83937C; }
+    h1 { font-family: 'Playfair Display', Georgia, serif; font-size: 2.5rem; font-weight: 700; color: #E7EBDF; letter-spacing: -1px; line-height: 1.1; margin-bottom: 1rem; }
+    .stats-bar { background: #1B2A20; border: 1px solid #2E4433; border-radius: 6px; padding: 0.85rem 1.25rem; display: flex; gap: 2rem; margin-bottom: 0.75rem; }
+    .stats-bar-value { font-size: 1.1rem; font-weight: 600; color: #A9BE9C; }
+    .stats-bar-label { font-size: 0.6rem; letter-spacing: 1.5px; text-transform: uppercase; color: #83937C; margin-top: 0.1rem; }
     .nav-section { display: flex; flex-direction: column; gap: 0.5rem; margin-bottom: 0.75rem; }
-    .nav-btn { display: block; padding: 0.85rem 1.25rem; background: #1A3035; color: #C4D8E6; border-radius: 6px; text-decoration: none; font-weight: 600; font-size: 9pt; border: 1px solid #22443A; transition: background 0.15s; }
-    .nav-btn:hover { background: #1D4A5C; color: #F5F0E8; }
-    details.status { background: #1A3035; border-radius: 6px; border: 1px solid #22443A; overflow: hidden; }
+    .nav-btn { display: block; padding: 0.85rem 1.25rem; background: #1B2A20; color: #C9D3C2; border-radius: 6px; text-decoration: none; font-weight: 600; font-size: 9pt; border: 1px solid #2E4433; transition: background 0.15s; }
+    .nav-btn:hover { background: #547048; color: #E7EBDF; }
+    details.status { background: #1B2A20; border-radius: 6px; border: 1px solid #2E4433; overflow: hidden; }
     details.status > summary { display: flex; align-items: center; gap: 0.5rem; cursor: pointer; list-style: none; padding: 0.85rem 1.25rem; }
     details.status > summary::-webkit-details-marker { display: none; }
     .status-dot { width: 8px; height: 8px; background: #22C55E; border-radius: 50%; animation: pulse 2s infinite; flex-shrink: 0; }
     @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.4; } }
-    .status-title { font-weight: 600; color: #F5F0E8; font-size: 9pt; flex: 1; }
-    .status-chevron { color: #6A8A96; font-size: 0.7rem; transition: transform 0.2s; }
+    .status-title { font-weight: 600; color: #E7EBDF; font-size: 9pt; flex: 1; }
+    .status-chevron { color: #83937C; font-size: 0.7rem; transition: transform 0.2s; }
     details.status[open] .status-chevron { transform: rotate(180deg); }
-    .stats-grid { display: grid; grid-template-columns: 1fr 1fr; border-top: 1px solid #22443A; }
-    .stat { padding: 0.7rem 1.25rem; border-bottom: 1px solid #22443A; border-right: 1px solid #22443A; }
+    .stats-grid { display: grid; grid-template-columns: 1fr 1fr; border-top: 1px solid #2E4433; }
+    .stat { padding: 0.7rem 1.25rem; border-bottom: 1px solid #2E4433; border-right: 1px solid #2E4433; }
     .stat:nth-child(even) { border-right: none; }
     .stat:nth-last-child(-n+2) { border-bottom: none; }
-    .stat-label { font-size: 0.6rem; letter-spacing: 1px; text-transform: uppercase; color: #6A8A96; }
-    .stat-value { font-weight: 600; color: #F5F0E8; font-size: 9pt; margin-top: 0.1rem; }
+    .stat-label { font-size: 0.6rem; letter-spacing: 1px; text-transform: uppercase; color: #83937C; }
+    .stat-value { font-weight: 600; color: #E7EBDF; font-size: 9pt; margin-top: 0.1rem; }
     .footer { margin-top: 0.75rem; }
-    a { color: #4B8FA8; text-decoration: none; }
+    a { color: #A9BE9C; text-decoration: none; }
     @media (max-width: 600px) { h1 { font-size: 1.75rem; } .stats-bar { gap: 1rem; } .page-header { flex-direction: column; align-items: flex-start; gap: 0.2rem; } }
   </style>
 </head>
@@ -256,7 +256,7 @@ app.get('/api/status', async (req, res) => {
       </div>
     </details>
     <div class="footer">
-      <a href="/legislative" style="display: inline-block; margin-top: 0.75rem; padding: 0.5rem 1rem; background: #1A3035; color: #C4D8E6; border: 1px solid #22443A; border-radius: 6px; text-decoration: none; font-size: 0.75rem;">March 13th 2026: FINAL WA Legislative Session Update</a>
+      <a href="/legislative" style="display: inline-block; margin-top: 0.75rem; padding: 0.5rem 1rem; background: #1B2A20; color: #C9D3C2; border: 1px solid #2E4433; border-radius: 6px; text-decoration: none; font-size: 0.75rem;">March 13th 2026: FINAL WA Legislative Session Update</a>
     </div>
   </div>
 </body>
@@ -512,7 +512,7 @@ app.get('/api/run', async (req, res) => {
           : "No changes detected.";
 
     const html =
-      '<!DOCTYPE html><html><head><meta charset="utf-8"><meta http-equiv="refresh" content="3;url=/api/history"><style>body{font-family:sans-serif;background:#070907;color:#C8C87A;display:flex;align-items:center;justify-content:center;min-height:100vh;margin:0;}.container{text-align:center;padding:2rem;}.success{color:#6B7A2A;font-size:3rem;margin-bottom:1rem;}h1{color:#F0F0E8;margin-bottom:1rem;}p{color:#FFFFFF;}</style></head><body><div class="container"><div class="success">✓</div><h1>Workflow Complete</h1><p>' +
+      '<!DOCTYPE html><html><head><meta charset="utf-8"><meta http-equiv="refresh" content="3;url=/api/history"><style>body{font-family:sans-serif;background:#121A15;color:#C3D6B8;display:flex;align-items:center;justify-content:center;min-height:100vh;margin:0;}.container{text-align:center;padding:2rem;}.success{color:#6B7A2A;font-size:3rem;margin-bottom:1rem;}h1{color:#E7EBDF;margin-bottom:1rem;}p{color:#FFFFFF;}</style></head><body><div class="container"><div class="success">✓</div><h1>Workflow Complete</h1><p>' +
       message +
       "</p><p>Redirecting to Change Log...</p></div></body></html>";
 
@@ -520,7 +520,7 @@ app.get('/api/run', async (req, res) => {
   } catch (error) {
     console.error('Error in /api/run:', error);
     const html =
-      '<!DOCTYPE html><html><head><meta charset="utf-8"><style>body{font-family:sans-serif;background:#070907;color:#C8C87A;display:flex;align-items:center;justify-content:center;min-height:100vh;margin:0;}.container{text-align:center;padding:2rem;}.error{color:#ef4444;font-size:3rem;margin-bottom:1rem;}h1{color:#ef4444;margin-bottom:1rem;}p{color:#FFFFFF;}a{color:#C8C87A;}</style></head><body><div class="container"><div class="error">✗</div><h1>Error</h1><p>' +
+      '<!DOCTYPE html><html><head><meta charset="utf-8"><style>body{font-family:sans-serif;background:#121A15;color:#C3D6B8;display:flex;align-items:center;justify-content:center;min-height:100vh;margin:0;}.container{text-align:center;padding:2rem;}.error{color:#ef4444;font-size:3rem;margin-bottom:1rem;}h1{color:#ef4444;margin-bottom:1rem;}p{color:#FFFFFF;}a{color:#C3D6B8;}</style></head><body><div class="container"><div class="error">✗</div><h1>Error</h1><p>' +
       (error.message || "Unknown error") +
       '</p><p><a href="/api/status">Back to Status</a></p></div></body></html>';
     res.send(html);
@@ -539,35 +539,35 @@ app.get('/legislative', (req, res) => {
   <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,600;0,700;1,400&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
   <style>
     * { box-sizing: border-box; margin: 0; padding: 0; }
-    body { font-family: 'Inter', Arial, sans-serif; font-size: 9pt; background: #152220; color: #C4D8E6; min-height: 100vh; padding: 2rem; }
+    body { font-family: 'Inter', Arial, sans-serif; font-size: 9pt; background: #121A15; color: #C9D3C2; min-height: 100vh; padding: 2rem; }
     .container { max-width: 900px; margin: 0 auto; }
-    h1 { font-family: 'Playfair Display', Georgia, serif; font-size: 2rem; margin-bottom: 0.5rem; color: #F5F0E8; font-weight: 700; letter-spacing: -0.5px; }
-    .subtitle { color: #6A8A96; margin-bottom: 2rem; }
-    .back-link { display: inline-block; margin-bottom: 1.5rem; color: #4B8FA8; text-decoration: none; }
+    h1 { font-family: 'Playfair Display', Georgia, serif; font-size: 2rem; margin-bottom: 0.5rem; color: #E7EBDF; font-weight: 700; letter-spacing: -0.5px; }
+    .subtitle { color: #83937C; margin-bottom: 2rem; }
+    .back-link { display: inline-block; margin-bottom: 1.5rem; color: #A9BE9C; text-decoration: none; }
     .back-link:hover { text-decoration: underline; }
-    .content { background: #1A3035; border-radius: 12px; padding: 2rem; margin-bottom: 1rem; line-height: 1.6; }
-    .content h2 { font-family: 'Playfair Display', Georgia, serif; color: #4B8FA8; margin-top: 1.5rem; margin-bottom: 0.75rem; font-size: 1.2rem; font-weight: 600; }
+    .content { background: #1B2A20; border-radius: 12px; padding: 2rem; margin-bottom: 1rem; line-height: 1.6; }
+    .content h2 { font-family: 'Playfair Display', Georgia, serif; color: #A9BE9C; margin-top: 1.5rem; margin-bottom: 0.75rem; font-size: 1.2rem; font-weight: 600; }
     .content h2:first-child { margin-top: 0; }
-    .content h3 { font-family: 'Inter', Arial, sans-serif; color: #C4D8E6; margin-top: 1rem; margin-bottom: 0.5rem; font-size: 0.9rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px; }
-    .content p { margin-bottom: 0.75rem; color: #C4D8E6; }
+    .content h3 { font-family: 'Inter', Arial, sans-serif; color: #C9D3C2; margin-top: 1rem; margin-bottom: 0.5rem; font-size: 0.9rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px; }
+    .content p { margin-bottom: 0.75rem; color: #C9D3C2; }
     .content ul { margin-left: 1.5rem; margin-bottom: 1rem; }
-    .content li { margin-bottom: 0.5rem; color: #C4D8E6; }
-    .update-date { color: #6A8A96; font-weight: bold; margin-bottom: 1rem; }
-    .content strong { color: #F5F0E8; }
-    a { color: #4B8FA8; }
+    .content li { margin-bottom: 0.5rem; color: #C9D3C2; }
+    .update-date { color: #83937C; font-weight: bold; margin-bottom: 1rem; }
+    .content strong { color: #E7EBDF; }
+    a { color: #A9BE9C; }
 
     .badge { display: inline-block; font-size: 0.7rem; font-weight: bold; padding: 2px 7px; border-radius: 3px; margin-left: 6px; vertical-align: middle; letter-spacing: 0.5px; text-transform: uppercase; }
-    .badge-signed    { background: #0B3A2A; color: #5AAAA0; border: 1px solid #0B607C; }
-    .badge-passed    { background: #0B2A3A; color: #4B8FA8; border: 1px solid #0B607C; }
+    .badge-signed    { background: #0B3A2A; color: #5AAAA0; border: 1px solid #547048; }
+    .badge-passed    { background: #1B2A20; color: #A9BE9C; border: 1px solid #547048; }
     .badge-awaiting  { background: #3A3000; color: #E8D080; }
-    .badge-advancing { background: #0B2A3A; color: #C4D8E6; }
+    .badge-advancing { background: #1B2A20; color: #C9D3C2; }
     .badge-dead      { background: #3A1A1A; color: #E08080; }
-    .badge-effect    { background: #0B3035; color: #4BC4A8; border: 1px solid #0B607C; }
+    .badge-effect    { background: #1B2A20; color: #4BC4A8; border: 1px solid #547048; }
     .badge-uncertain { background: #2A2A1A; color: #C8B860; }
 
-    .session-adjourned { background: #0E1C1A; border: 1px solid #1E3840; border-radius: 8px; padding: 1rem 1.25rem; margin-bottom: 1.25rem; }
-    .session-adjourned .adj-label { font-size: 0.7rem; text-transform: uppercase; letter-spacing: 0.08em; color: #6A8A96; margin-bottom: 4px; }
-    .session-adjourned p { color: #C4D8E6; margin: 0; font-size: 0.9em; }
+    .session-adjourned { background: #141F17; border: 1px solid #2E4433; border-radius: 8px; padding: 1rem 1.25rem; margin-bottom: 1.25rem; }
+    .session-adjourned .adj-label { font-size: 0.7rem; text-transform: uppercase; letter-spacing: 0.08em; color: #83937C; margin-bottom: 4px; }
+    .session-adjourned p { color: #C9D3C2; margin: 0; font-size: 0.9em; }
   </style>
 </head>
 <body>
@@ -736,7 +736,7 @@ app.get('/legislative', (req, res) => {
 
       <p><strong>POSTHUMOUS CANDIDATE BALLOT REMOVAL</strong> <span class="badge badge-dead">Dead</span> — Would have allowed removal of deceased candidates from ballots after the filing deadline. Passed the House, didn't make it out of a Senate policy committee. Prompted by Tom Crowson, who died close enough to the primary that he nearly won posthumously.</p>
 
-      <p style="margin-top: 2rem; color: #6A8A96; font-style: italic;">For more information, visit <a href="https://leg.wa.gov" target="_blank">leg.wa.gov</a>. Session adjourned sine die March 12, 2026. Governor action deadline: April 4, 2026.</p>
+      <p style="margin-top: 2rem; color: #83937C; font-style: italic;">For more information, visit <a href="https://leg.wa.gov" target="_blank">leg.wa.gov</a>. Session adjourned sine die March 12, 2026. Governor action deadline: April 4, 2026.</p>
     </div>
   </div>
 </body>
@@ -782,6 +782,19 @@ app.get('/api/history', (req, res) => {
     console.error('History parse error:', e);
   }
 
+  // "5d0h0m" -> "5 days 57 minutes" (zero-value units omitted, matching
+  // how the site operator wants the held duration read at a glance).
+  function formatHeldDuration(timeServedStr) {
+    const m = timeServedStr.match(/(\d+)d(\d+)h(\d+)m/);
+    if (!m) return '';
+    const d = parseInt(m[1], 10), h = parseInt(m[2], 10), mins = parseInt(m[3], 10);
+    const parts = [];
+    if (d > 0) parts.push(`${d} day${d !== 1 ? 's' : ''}`);
+    if (h > 0) parts.push(`${h} hour${h !== 1 ? 's' : ''}`);
+    if (mins > 0 || parts.length === 0) parts.push(`${mins} minute${mins !== 1 ? 's' : ''}`);
+    return parts.join(' ');
+  }
+
   function buildInmateRow(line, type = 'booked') {
     const namePart = line.split(' | ')[0] || 'Unknown';
     // Reconstruct "MM/DD/YY HH:MM:SS" for display regardless of whether the
@@ -799,17 +812,22 @@ app.get('/api/history', (req, res) => {
     const releaseParenMatch = line.match(/\(([^)]+)\)/);
     const releaseRaw = releaseParenMatch ? releaseParenMatch[1].trim() : '';
     const releaseLabel = releaseRaw ? (RELEASE_TYPE_NAMES[releaseRaw] || releaseRaw) : '';
+    const warrant = /WARRANT/i.test(charges);
     const badgeClass = type === 'released' ? 'badge-released' : 'badge-booked';
     const badgeText = type === 'released' ? 'RELEASED' : 'BOOKED';
+    const rowClass = type === 'released' ? 'row-released' : 'row-booked';
+    const heldText = type === 'released' && timeServed ? formatHeldDuration(timeServed) : '';
     let detailRows = '';
     if (charges) detailRows += '<div class="detail-row"><span class="detail-label">Charges</span><span class="detail-value">' + charges + '</span></div>';
     if (timeServed) detailRows += '<div class="detail-row"><span class="detail-label">Served</span><span class="detail-value">' + timeServed + '</span></div>';
     if (bail) detailRows += '<div class="detail-row"><span class="detail-label">Bail</span><span class="detail-value">' + bail + '</span></div>';
     if (releaseLabel) detailRows += '<div class="detail-row"><span class="detail-label">Release</span><span class="detail-value">' + releaseLabel + '</span></div>';
-    return '<details class="inmate-row">' +
+    return '<details class="inmate-row ' + rowClass + '">' +
       '<summary>' +
       '<span class="inmate-name">' + namePart + '</span>' +
+      (heldText ? '<span class="inmate-held">Held: ' + heldText + '</span>' : '') +
       (time ? '<span class="inmate-time">' + time + '</span>' : '') +
+      (warrant ? '<span class="status-badge badge-warrant">WARRANT</span>' : '') +
       '<span class="status-badge ' + badgeClass + '">' + badgeText + '</span>' +
       '<span class="chevron">▾</span>' +
       '</summary>' +
@@ -852,40 +870,46 @@ app.get('/api/history', (req, res) => {
   <style>
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
     html, body { overflow-x: hidden; width: 100%; }
-    body { font-family: 'Inter', Arial, sans-serif; font-size: 8pt; background: #152220; color: #C4D8E6; min-height: 100vh; }
+    body { font-family: 'Inter', Arial, sans-serif; font-size: 8pt; background: #121A15; color: #C9D3C2; min-height: 100vh; }
     .page-header { display: flex; justify-content: space-between; align-items: center; }
-    .county-label { font-size: 0.7rem; font-weight: 600; letter-spacing: 2px; text-transform: uppercase; color: #A8C4D0; }
-    .public-records { font-size: 0.7rem; font-weight: 500; letter-spacing: 1px; text-transform: uppercase; color: #6A8A96; }
-    h1 { font-family: 'Playfair Display', Georgia, serif; font-size: 2.5rem; font-weight: 700; color: #F5F0E8; letter-spacing: -0.5px; margin: 0.75rem 0 1rem; }
+    .county-label { font-size: 0.7rem; font-weight: 600; letter-spacing: 2px; text-transform: uppercase; color: #A9BE9C; }
+    .public-records { font-size: 0.7rem; font-weight: 500; letter-spacing: 1px; text-transform: uppercase; color: #83937C; }
+    h1 { font-family: 'Playfair Display', Georgia, serif; font-size: 2.5rem; font-weight: 700; color: #E7EBDF; letter-spacing: -0.5px; margin: 0.75rem 0 1rem; }
     .nav-bar { display: flex; gap: 0.5rem; margin-bottom: 1.25rem; }
-    .nav-btn { padding: 0.5rem 1rem; background: #1A3035; color: #C4D8E6; border-radius: 6px; text-decoration: none; font-weight: 600; font-size: 8pt; border: 1px solid #22443A; transition: background 0.15s; }
-    .nav-btn:hover { background: #1D4A5C; color: #F5F0E8; }
+    .nav-btn { padding: 0.5rem 1rem; background: #1B2A20; color: #C9D3C2; border-radius: 6px; text-decoration: none; font-weight: 600; font-size: 8pt; border: 1px solid #2E4433; transition: background 0.15s; }
+    .nav-btn:hover { background: #547048; color: #E7EBDF; }
     .container { max-width: 900px; margin: 0 auto; padding: 1.5rem 2rem 3rem; }
     .date-group { margin-bottom: 2rem; }
-    .date-label { font-size: 0.7rem; font-weight: 600; letter-spacing: 2px; text-transform: uppercase; color: #4B8FA8; padding-bottom: 0.5rem; border-bottom: 1px solid #22443A; margin-bottom: 0.75rem; }
+    .date-label { font-size: 0.7rem; font-weight: 600; letter-spacing: 2px; text-transform: uppercase; color: #A9BE9C; padding-bottom: 0.5rem; border-bottom: 1px solid #2E4433; margin-bottom: 0.75rem; }
     .section-label { font-size: 0.65rem; font-weight: 700; letter-spacing: 2px; text-transform: uppercase; margin: 0.75rem 0 0.4rem; }
-    .section-label.booked { color: #4B8FA8; }
-    .section-label.released { color: #5AAAC8; }
-    details.inmate-row { background: #1A3035; border-radius: 6px; margin-bottom: 0.35rem; border: 1px solid #22443A; overflow: hidden; }
+    .section-label.booked { color: #A9BE9C; }
+    .section-label.released { color: #C3D6B8; }
+    details.inmate-row { background: #1B2A20; border-radius: 6px; margin-bottom: 0.35rem; border: 1px solid #2E4433; border-left-width: 4px; overflow: hidden; }
+    details.inmate-row.row-booked { border-left-color: #2E4433; }
+    details.inmate-row.row-released { border-left-color: #C3D6B8; }
     details.inmate-row > summary { list-style: none; display: flex; align-items: center; gap: 0.6rem; padding: 0.7rem 1rem; cursor: pointer; user-select: none; }
     details.inmate-row > summary::-webkit-details-marker { display: none; }
-    .inmate-name { font-family: 'Fake Receipt', 'Courier New', monospace; font-size: 9.5pt; font-weight: 700; color: #F5F0E8; text-transform: uppercase; letter-spacing: 0.5px; flex: 1; }
-    .inmate-time { color: #6A8A96; font-size: 7pt; white-space: nowrap; }
+    .inmate-name { font-family: 'Fake Receipt', 'Courier New', monospace; font-size: 9.5pt; font-weight: 700; color: #E7EBDF; text-transform: uppercase; letter-spacing: 0.5px; flex: 1; }
+    .inmate-time { color: #83937C; font-size: 7pt; white-space: nowrap; }
+    .inmate-held { color: #C3D6B8; font-size: 7pt; font-weight: 600; white-space: nowrap; }
     .status-badge { font-size: 0.58rem; font-weight: 700; letter-spacing: 1.5px; text-transform: uppercase; padding: 0.18rem 0.45rem; border-radius: 3px; white-space: nowrap; flex-shrink: 0; }
-    .badge-booked { background: rgba(75,143,168,0.15); color: #4B8FA8; border: 1px solid rgba(75,143,168,0.3); }
-    .badge-released { background: rgba(90,170,200,0.15); color: #5AAAC8; border: 1px solid rgba(90,170,200,0.3); }
-    .chevron { color: #6A8A96; font-size: 0.65rem; flex-shrink: 0; transition: transform 0.15s; }
+    /* Booked = dark solid, Released = light solid, so the two are
+       distinguishable at a glance without reading the text. */
+    .badge-booked { background: #2E4433; color: #E7EBDF; border: 1px solid #3E5C3A; }
+    .badge-released { background: #C3D6B8; color: #121A15; border: 1px solid #A9BE9C; }
+    .badge-warrant { background: #5C3A1A; color: #E7EBDF; border: 1px solid #7C4A24; }
+    .chevron { color: #83937C; font-size: 0.65rem; flex-shrink: 0; transition: transform 0.15s; }
     details.inmate-row[open] .chevron { transform: rotate(180deg); }
-    .inmate-details { border-top: 1px solid #22443A; padding: 0.5rem 1rem 0.65rem; }
-    .detail-row { display: flex; align-items: baseline; gap: 0.75rem; padding: 0.3rem 0; border-bottom: 1px solid #1a2e2c; }
+    .inmate-details { border-top: 1px solid #2E4433; padding: 0.5rem 1rem 0.65rem; }
+    .detail-row { display: flex; align-items: baseline; gap: 0.75rem; padding: 0.3rem 0; border-bottom: 1px solid #2E4433; }
     .detail-row:last-child { border-bottom: none; }
-    .detail-label { font-size: 0.6rem; font-weight: 600; letter-spacing: 1px; text-transform: uppercase; color: #6A8A96; min-width: 55px; flex-shrink: 0; }
-    .detail-value { color: #A8C4D0; font-size: 7.5pt; line-height: 1.5; }
-    .no-data { color: #6A8A96; text-align: center; padding: 3rem; }
-    .search-input { width: 100%; padding: 0.7rem 1rem; background: #1A3035; color: #F5F0E8; border: 1px solid #22443A; border-radius: 6px; font-size: 9pt; font-family: 'Inter', Arial, sans-serif; outline: none; margin-bottom: 1.25rem; }
-    .search-input::placeholder { color: #6A8A96; }
-    .search-input:focus { border-color: #4B8FA8; }
-    a { color: #4B8FA8; text-decoration: none; }
+    .detail-label { font-size: 0.6rem; font-weight: 600; letter-spacing: 1px; text-transform: uppercase; color: #83937C; min-width: 55px; flex-shrink: 0; }
+    .detail-value { color: #A9BE9C; font-size: 7.5pt; line-height: 1.5; }
+    .no-data { color: #83937C; text-align: center; padding: 3rem; }
+    .search-input { width: 100%; padding: 0.7rem 1rem; background: #1B2A20; color: #E7EBDF; border: 1px solid #2E4433; border-radius: 6px; font-size: 9pt; font-family: 'Inter', Arial, sans-serif; outline: none; margin-bottom: 1.25rem; }
+    .search-input::placeholder { color: #83937C; }
+    .search-input:focus { border-color: #A9BE9C; }
+    a { color: #A9BE9C; text-decoration: none; }
     @media (max-width: 600px) { .page-header { flex-direction: column; align-items: flex-start; gap: 0.2rem; } h1 { font-size: 1.75rem; } .container { padding: 0 1rem 3rem; } }
   </style>
 </head>
@@ -1323,7 +1347,7 @@ const avgStayDays = stayCount > 0 ? Math.round((totalStayHours / stayCount) / 24
   }
 });
 
-const PIE_CHART_COLORS = ['#4B8FA8', '#C8C87A', '#0B607C', '#C4D8E6', '#8AA872', '#B08AC4', '#D4956B', '#6A8A96', '#E0C568', '#7AAFC4'];
+const PIE_CHART_COLORS = ['#A9BE9C', '#3E5C3A', '#D7DBD3', '#547048', '#9CA98C', '#2E4433', '#C3D6B8', '#4F6B4A', '#83937C', '#6B8F5C'];
 
 function polarToCartesian(cx, cy, r, angleDeg) {
   const angleRad = (angleDeg - 90) * Math.PI / 180;
@@ -1355,7 +1379,7 @@ function renderPieChart(slices, size = 220) {
   }
 
   const legend = slices.map(s => `
-    <div style="display:flex; align-items:center; gap:0.5rem; font-size:0.8rem; color:#C4D8E6;">
+    <div style="display:flex; align-items:center; gap:0.5rem; font-size:0.8rem; color:#C9D3C2;">
       <span style="display:inline-block; width:12px; height:12px; border-radius:3px; background:${s.color}; flex-shrink:0;"></span>
       <span>${s.label} — ${((s.value / total) * 100).toFixed(1)}%</span>
     </div>
@@ -1388,8 +1412,8 @@ function getStatsHTML(stats) {
     body {
       font-family: 'Inter', Arial, sans-serif;
       font-size: 9pt;
-      background: #152220;
-      color: #C4D8E6;
+      background: #121A15;
+      color: #C9D3C2;
       min-height: 100vh;
       padding: 2rem;
     }
@@ -1398,15 +1422,15 @@ function getStatsHTML(stats) {
       font-family: 'Playfair Display', Georgia, serif;
       font-size: 2.5rem;
       margin-bottom: 0.5rem;
-      color: #F5F0E8;
+      color: #E7EBDF;
       font-weight: 700;
       letter-spacing: -0.5px;
     }
-    .subtitle { color: #6A8A96; margin-bottom: 2rem; }
+    .subtitle { color: #83937C; margin-bottom: 2rem; }
     .back-link {
       display: inline-block;
       margin-bottom: 1.5rem;
-      color: #4B8FA8;
+      color: #A9BE9C;
       text-decoration: none;
     }
     .back-link:hover { text-decoration: underline; }
@@ -1418,38 +1442,38 @@ function getStatsHTML(stats) {
       margin-bottom: 2rem;
     }
     .stat-card {
-      background: #1A3035;
+      background: #1B2A20;
       border-radius: 12px;
       padding: 1.5rem;
-      border-left: 4px solid #0B607C;
+      border-left: 4px solid #547048;
     }
-    .stat-card.purple { border-left-color: #4B8FA8; }
-    .stat-card.blue { border-left-color: #0B607C; }
-    .stat-card.orange { border-left-color: #C4D8E6; }
+    .stat-card.purple { border-left-color: #A9BE9C; }
+    .stat-card.blue { border-left-color: #547048; }
+    .stat-card.orange { border-left-color: #C9D3C2; }
 
     .stat-value {
       font-size: 2.5rem;
       font-weight: bold;
-      color: #C4D8E6;
+      color: #C9D3C2;
       margin-bottom: 0.25rem;
       font-family: 'Playfair Display', Georgia, serif;
     }
     .stat-label {
-      color: #6A8A96;
+      color: #83937C;
       font-size: 0.875rem;
       text-transform: uppercase;
       letter-spacing: 0.5px;
     }
 
     .chart-container {
-      background: #1A3035;
+      background: #1B2A20;
       border-radius: 12px;
       padding: 1.5rem;
       margin-bottom: 1rem;
     }
     .chart-title {
       font-family: 'Playfair Display', Georgia, serif;
-      color: #F5F0E8;
+      color: #E7EBDF;
       font-size: 1.2rem;
       font-weight: 600;
       margin-bottom: 1rem;
@@ -1463,20 +1487,20 @@ function getStatsHTML(stats) {
     }
     .bar-label {
       min-width: 200px;
-      color: #C4D8E6;
+      color: #C9D3C2;
       font-size: 0.8rem;
       overflow: hidden;
       text-overflow: ellipsis;
       white-space: nowrap;
     }
     .bar-fill {
-      background: linear-gradient(90deg, #0B607C, #4B8FA8);
+      background: linear-gradient(90deg, #547048, #A9BE9C);
       height: 24px;
       border-radius: 4px;
       display: flex;
       align-items: center;
       padding: 0 0.5rem;
-      color: #F5F0E8;
+      color: #E7EBDF;
       font-weight: bold;
       font-size: 0.75rem;
       min-width: 30px;
@@ -1498,18 +1522,18 @@ function getStatsHTML(stats) {
     }
     .day-bar-fill {
       width: 100%;
-      background: linear-gradient(180deg, #0B607C, #4B8FA8);
+      background: linear-gradient(180deg, #547048, #A9BE9C);
       border-radius: 4px 4px 0 0;
       display: flex;
       align-items: flex-end;
       justify-content: center;
-      color: #F5F0E8;
+      color: #E7EBDF;
       font-size: 0.7rem;
       font-weight: bold;
       padding-bottom: 0.25rem;
     }
     .day-label {
-      color: #6A8A96;
+      color: #83937C;
       font-size: 0.75rem;
       margin-top: 0.5rem;
     }
@@ -1521,7 +1545,7 @@ function getStatsHTML(stats) {
       margin-top: 1rem;
     }
     .release-type {
-      background: #0E1C1A;
+      background: #141F17;
       padding: 1rem;
       border-radius: 8px;
       text-align: center;
@@ -1529,11 +1553,11 @@ function getStatsHTML(stats) {
     .release-type-count {
       font-size: 1.5rem;
       font-weight: bold;
-      color: #C4D8E6;
+      color: #C9D3C2;
       font-family: 'Playfair Display', Georgia, serif;
     }
     .release-type-label {
-      color: #6A8A96;
+      color: #83937C;
       font-size: 0.75rem;
       margin-top: 0.25rem;
     }
@@ -1547,13 +1571,13 @@ function getStatsHTML(stats) {
     }
     .time-bar {
       flex: 1;
-      background: linear-gradient(180deg, #0B607C, #4B8FA8);
+      background: linear-gradient(180deg, #547048, #A9BE9C);
       border-radius: 2px 2px 0 0;
       position: relative;
       min-width: 8px;
     }
     .time-bar:hover {
-      background: linear-gradient(180deg, #4B8FA8, #C4D8E6);
+      background: linear-gradient(180deg, #A9BE9C, #C9D3C2);
     }
   </style>
 </head>
@@ -1608,7 +1632,7 @@ function getStatsHTML(stats) {
             </div>
           </div>
         `).join('')}
-        ${stats.commonCharges.length === 0 ? '<p style="color: #72807A;">No charge data available yet</p>' : ''}
+        ${stats.commonCharges.length === 0 ? '<p style="color: #83937C;">No charge data available yet</p>' : ''}
       </div>
     </div>
     
@@ -1643,7 +1667,7 @@ function getStatsHTML(stats) {
     ${releaseTypeEntries.map(([code, count]) => `
       <div class="release-type">
         <div class="release-type-count">${count}</div>
-        <div style="font-size: 1rem; font-weight: bold; color: #C8C87A; margin: 0.25rem 0;">${code}</div>
+        <div style="font-size: 1rem; font-weight: bold; color: #C3D6B8; margin: 0.25rem 0;">${code}</div>
         <div class="release-type-label">${RELEASE_TYPE_NAMES[code] || code}</div>
       </div>
     `).join('')}
@@ -1656,22 +1680,22 @@ function getStatsHTML(stats) {
     <div class="chart-container">
       <div class="chart-title">Time Served Statistics (from PDF Data)</div>
       <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 1rem; margin-top: 1rem;">
-        <div style="background: #0E1C1A; padding: 1rem; border-radius: 8px; text-align: center;">
-          <div style="font-size: 1.5rem; font-weight: bold; color: #C4D8E6; font-family: 'Playfair Display', Georgia, serif;">${formatMinutes(stats.avgTimeServedMins)}</div>
-          <div style="color: #6A8A96; font-size: 0.75rem; margin-top: 0.25rem;">Mean Time Served</div>
+        <div style="background: #141F17; padding: 1rem; border-radius: 8px; text-align: center;">
+          <div style="font-size: 1.5rem; font-weight: bold; color: #C9D3C2; font-family: 'Playfair Display', Georgia, serif;">${formatMinutes(stats.avgTimeServedMins)}</div>
+          <div style="color: #83937C; font-size: 0.75rem; margin-top: 0.25rem;">Mean Time Served</div>
         </div>
-        <div style="background: #0E1C1A; padding: 1rem; border-radius: 8px; text-align: center;">
-          <div style="font-size: 1.5rem; font-weight: bold; color: #C4D8E6; font-family: 'Playfair Display', Georgia, serif;">${formatMinutes(stats.medianTimeServedMins)}</div>
-          <div style="color: #6A8A96; font-size: 0.75rem; margin-top: 0.25rem;">Median Time Served</div>
+        <div style="background: #141F17; padding: 1rem; border-radius: 8px; text-align: center;">
+          <div style="font-size: 1.5rem; font-weight: bold; color: #C9D3C2; font-family: 'Playfair Display', Georgia, serif;">${formatMinutes(stats.medianTimeServedMins)}</div>
+          <div style="color: #83937C; font-size: 0.75rem; margin-top: 0.25rem;">Median Time Served</div>
         </div>
-        <div style="background: #0E1C1A; padding: 1rem; border-radius: 8px; text-align: center;">
-          <div style="font-size: 1.5rem; font-weight: bold; color: #C4D8E6; font-family: 'Playfair Display', Georgia, serif;">${formatMinutes(stats.minTimeServedMins)}</div>
-          <div style="color: #6A8A96; font-size: 0.75rem; margin-top: 0.25rem;">Shortest Stay</div>
+        <div style="background: #141F17; padding: 1rem; border-radius: 8px; text-align: center;">
+          <div style="font-size: 1.5rem; font-weight: bold; color: #C9D3C2; font-family: 'Playfair Display', Georgia, serif;">${formatMinutes(stats.minTimeServedMins)}</div>
+          <div style="color: #83937C; font-size: 0.75rem; margin-top: 0.25rem;">Shortest Stay</div>
         </div>
-        <div style="background: #0E1C1A; padding: 1rem; border-radius: 8px; text-align: center;">
-          <div style="font-size: 1.5rem; font-weight: bold; color: #C4D8E6; font-family: 'Playfair Display', Georgia, serif;">${stats.longestCurrentMins > 0 ? formatMinutes(stats.longestCurrentMins) : 'N/A'}</div>
-          <div style="color: #6A8A96; font-size: 0.75rem; margin-top: 0.25rem;">Longest Current Stay</div>
-          ${stats.longestInmate ? `<div style="color: #6A8A96; font-size: 0.65rem; margin-top: 0.2rem; font-family: 'Fake Receipt', monospace;">${stats.longestInmate.name}</div>` : ''}
+        <div style="background: #141F17; padding: 1rem; border-radius: 8px; text-align: center;">
+          <div style="font-size: 1.5rem; font-weight: bold; color: #C9D3C2; font-family: 'Playfair Display', Georgia, serif;">${stats.longestCurrentMins > 0 ? formatMinutes(stats.longestCurrentMins) : 'N/A'}</div>
+          <div style="color: #83937C; font-size: 0.75rem; margin-top: 0.25rem;">Longest Current Stay</div>
+          ${stats.longestInmate ? `<div style="color: #83937C; font-size: 0.65rem; margin-top: 0.2rem; font-family: 'Fake Receipt', monospace;">${stats.longestInmate.name}</div>` : ''}
         </div>
       </div>
     </div>` : ''}
@@ -1686,7 +1710,7 @@ function getStatsHTML(stats) {
           return stats.avgBailByCharge.map(item => `
             <div class="bar-item">
               <div class="bar-label">${item.charge}</div>
-              <div class="bar-fill" style="width: ${(item.avgBail / maxBail) * 300}px; background: linear-gradient(90deg, #4E5A58, #C8C87A);">
+              <div class="bar-fill" style="width: ${(item.avgBail / maxBail) * 300}px; background: linear-gradient(90deg, #83937C, #C3D6B8);">
                 $${item.avgBail.toLocaleString()}
               </div>
             </div>
@@ -1970,18 +1994,18 @@ function getDeepStatsHTML(d) {
   function dayBar(days, max) {
     return Object.entries(days).map(([day, count]) => `
       <div style="display:flex;align-items:center;gap:0.5rem;margin-bottom:4px;">
-        <span style="min-width:32px;color:#C4D8E6;font-size:0.75rem;">${day}</span>
-        <div style="background:linear-gradient(90deg,#0B607C,#4B8FA8);height:18px;width:${Math.round((count/max)*260)}px;border-radius:3px;min-width:2px;"></div>
-        <span style="color:#C4D8E6;font-size:0.75rem;">${count}</span>
+        <span style="min-width:32px;color:#C9D3C2;font-size:0.75rem;">${day}</span>
+        <div style="background:linear-gradient(90deg,#547048,#A9BE9C);height:18px;width:${Math.round((count/max)*260)}px;border-radius:3px;min-width:2px;"></div>
+        <span style="color:#C9D3C2;font-size:0.75rem;">${count}</span>
       </div>`).join('');
   }
 
   function hourBar(hours, max) {
     return hours.map((count, hr) => `
       <div style="display:flex;align-items:center;gap:0.5rem;margin-bottom:2px;">
-        <span style="min-width:40px;color:#A8C4D0;font-size:0.7rem;">${String(hr).padStart(2,'0')}:00</span>
-        <div style="background:linear-gradient(90deg,#0E2A32,#1A4A5C);height:14px;width:${Math.round((count/max)*260)}px;border-radius:2px;min-width:2px;"></div>
-        <span style="color:#A8C4D0;font-size:0.7rem;">${count}</span>
+        <span style="min-width:40px;color:#A9BE9C;font-size:0.7rem;">${String(hr).padStart(2,'0')}:00</span>
+        <div style="background:linear-gradient(90deg,#141F17,#547048);height:14px;width:${Math.round((count/max)*260)}px;border-radius:2px;min-width:2px;"></div>
+        <span style="color:#A9BE9C;font-size:0.7rem;">${count}</span>
       </div>`).join('');
   }
 
@@ -1996,36 +2020,36 @@ function getDeepStatsHTML(d) {
   <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,600;0,700;1,400&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
   <style>
     *{box-sizing:border-box;margin:0;padding:0}
-    body{font-family:'Inter',Arial,sans-serif;font-size:8.5pt;background:#152220;color:#C4D8E6;padding:2rem;min-height:100vh}
+    body{font-family:'Inter',Arial,sans-serif;font-size:8.5pt;background:#121A15;color:#C9D3C2;padding:2rem;min-height:100vh}
     .wrap{max-width:1100px;margin:0 auto}
-    h1{font-family:'Playfair Display',Georgia,serif;font-size:1.6rem;color:#F5F0E8;margin-bottom:0.25rem;font-weight:700}
-    h2{font-family:'Playfair Display',Georgia,serif;font-size:0.95rem;color:#4B8FA8;font-weight:600;margin:2rem 0 0.75rem;border-bottom:1px solid #1E3840;padding-bottom:0.4rem}
-    a{color:#4B8FA8;text-decoration:none}
-    .subtitle{color:#6A8A96;font-size:0.75rem;margin-bottom:2rem}
+    h1{font-family:'Playfair Display',Georgia,serif;font-size:1.6rem;color:#E7EBDF;margin-bottom:0.25rem;font-weight:700}
+    h2{font-family:'Playfair Display',Georgia,serif;font-size:0.95rem;color:#A9BE9C;font-weight:600;margin:2rem 0 0.75rem;border-bottom:1px solid #2E4433;padding-bottom:0.4rem}
+    a{color:#A9BE9C;text-decoration:none}
+    .subtitle{color:#83937C;font-size:0.75rem;margin-bottom:2rem}
     table{width:100%;border-collapse:collapse;font-size:0.8rem;margin-top:0.5rem}
-    th{color:#6A8A96;text-align:left;padding:0.4rem 0.5rem;border-bottom:1px solid #1E3840;font-weight:normal;text-transform:uppercase;font-size:0.7rem;letter-spacing:0.5px}
-    td{padding:0.35rem 0.5rem;border-bottom:1px solid #0E1C1A;color:#C4D8E6;vertical-align:top}
-    tr:hover td{background:#1A3035}
-    .val{color:#F5F0E8;font-weight:bold;font-family:'Fake Receipt','Courier New',monospace}
-    .dim{color:#6A8A96}
+    th{color:#83937C;text-align:left;padding:0.4rem 0.5rem;border-bottom:1px solid #2E4433;font-weight:normal;text-transform:uppercase;font-size:0.7rem;letter-spacing:0.5px}
+    td{padding:0.35rem 0.5rem;border-bottom:1px solid #141F17;color:#C9D3C2;vertical-align:top}
+    tr:hover td{background:#1B2A20}
+    .val{color:#E7EBDF;font-weight:bold;font-family:'Fake Receipt','Courier New',monospace}
+    .dim{color:#83937C}
     .cards{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:0.75rem;margin-top:0.75rem}
-    .card{background:#1A3035;border-radius:8px;padding:1rem;border-left:3px solid #0B607C}
-    .card .v{font-size:1.6rem;font-weight:bold;color:#C4D8E6;font-family:'Playfair Display',Georgia,serif}
-    .card .l{color:#6A8A96;font-size:0.7rem;text-transform:uppercase;letter-spacing:0.5px;margin-top:0.15rem}
+    .card{background:#1B2A20;border-radius:8px;padding:1rem;border-left:3px solid #547048}
+    .card .v{font-size:1.6rem;font-weight:bold;color:#C9D3C2;font-family:'Playfair Display',Georgia,serif}
+    .card .l{color:#83937C;font-size:0.7rem;text-transform:uppercase;letter-spacing:0.5px;margin-top:0.15rem}
     .two-col{display:grid;grid-template-columns:1fr 1fr;gap:1.5rem}
     @media(max-width:700px){.two-col{grid-template-columns:1fr}}
-    .chip{display:inline-block;background:#0E1C1A;border:1px solid #1E3840;padding:1px 6px;border-radius:3px;font-size:0.7rem;margin:1px;color:#C4D8E6}
+    .chip{display:inline-block;background:#141F17;border:1px solid #2E4433;padding:1px 6px;border-radius:3px;font-size:0.7rem;margin:1px;color:#C9D3C2}
   </style>
 </head>
 <body>
 <div class="wrap">
-  <a href="/api/status" style="font-size:0.75rem;color:#4B8FA8;">← status</a>
+  <a href="/api/status" style="font-size:0.75rem;color:#A9BE9C;">← status</a>
   <h1 style="margin-top:0.5rem;">Deep Analytics</h1>
   <p class="subtitle">Mason County Jail · ${total} releases in history · Unlisted</p>
 
   <h2>Recidivism</h2>
   <div class="cards">
-    <div class="card" style="border-left-color:#4B8FA8">
+    <div class="card" style="border-left-color:#A9BE9C">
       <div class="v">${d.recidivismRate}%</div>
       <div class="l">Recidivism Rate</div>
     </div>
@@ -2076,7 +2100,7 @@ function getDeepStatsHTML(d) {
     ${d.maxBailEntry ? `<div class="card" style="border-left-color:#5C3A1A">
       <div class="v" style="font-size:1.2rem;">${$(d.maxBailEntry.bailAmt || parseFloat((d.maxBailEntry.bail||'$0').replace(/[$,]/g,'')))}</div>
       <div class="l">Most Expensive Bail Ever</div>
-      <div style="margin-top:0.4rem;font-size:0.7rem;color:#C4D8E6;font-family:'Fake Receipt','Courier New',monospace;">${d.maxBailEntry.name}</div>
+      <div style="margin-top:0.4rem;font-size:0.7rem;color:#C9D3C2;font-family:'Fake Receipt','Courier New',monospace;">${d.maxBailEntry.name}</div>
     </div>` : ''}
   </div>
 
@@ -2086,7 +2110,7 @@ function getDeepStatsHTML(d) {
     ${d.top10Bail.map((e, i) => `<tr>
       <td class="dim">${i+1}</td>
       <td class="val">${e.name}</td>
-      <td style="color:#C8C87A;font-weight:bold;">${$(e.bailAmt)}</td>
+      <td style="color:#C3D6B8;font-weight:bold;">${$(e.bailAmt)}</td>
       <td><span class="chip">${e.releaseType || '?'}</span></td>
       <td class="dim">${e.releaseDateTime ? formatShortDateTime(parseBookingDate(e.releaseDateTime)) || '—' : '—'}</td>
       <td style="font-size:0.7rem;">${e.charges.length ? e.charges.join(', ') : '<span class="dim">—</span>'}</td>
@@ -2100,7 +2124,7 @@ function getDeepStatsHTML(d) {
     ${bailByChargeArr.map(r => `<tr>
       <td>${r.charge}</td>
       <td class="val">${$(r.avg)}</td>
-      <td style="color:#C8C87A;">${$(r.max)}</td>
+      <td style="color:#C3D6B8;">${$(r.max)}</td>
       <td class="dim">${r.count}</td>
     </tr>`).join('')}
     ${bailByChargeArr.length === 0 ? '<tr><td colspan="4" class="dim">No data yet</td></tr>' : ''}
@@ -2143,23 +2167,23 @@ function getDeepStatsHTML(d) {
     <div class="card">
       <div class="v">${d.under24 + d.over24 > 0 ? pct(d.under24, d.under24+d.over24) : '—'}</div>
       <div class="l">Released in &lt;24 Hours</div>
-      <div style="margin-top:0.4rem;font-size:0.7rem;color:#72807A;">${d.under24} under / ${d.over24} over</div>
+      <div style="margin-top:0.4rem;font-size:0.7rem;color:#83937C;">${d.under24} under / ${d.over24} over</div>
     </div>
     ${d.histMinEntry ? `<div class="card" style="border-left-color:#0B7C5C">
       <div class="v" style="font-size:1.2rem;">${formatMinutes(d.histMinMins)}</div>
       <div class="l">Shortest Stay Ever</div>
-      <div style="margin-top:0.4rem;font-size:0.7rem;color:#C4D8E6;font-family:'Fake Receipt','Courier New',monospace;">${d.histMinEntry.name}</div>
+      <div style="margin-top:0.4rem;font-size:0.7rem;color:#C9D3C2;font-family:'Fake Receipt','Courier New',monospace;">${d.histMinEntry.name}</div>
     </div>` : ''}
     ${d.histMaxEntry ? `<div class="card" style="border-left-color:#7C1A1A">
       <div class="v" style="font-size:1.2rem;">${formatMinutes(d.histMaxMins)}</div>
       <div class="l">Historical Longest Stay</div>
-      <div style="margin-top:0.4rem;font-size:0.7rem;color:#C4D8E6;font-family:'Fake Receipt','Courier New',monospace;">${d.histMaxEntry.name}</div>
+      <div style="margin-top:0.4rem;font-size:0.7rem;color:#C9D3C2;font-family:'Fake Receipt','Courier New',monospace;">${d.histMaxEntry.name}</div>
     </div>` : ''}
     ${d.currentLongest ? `<div class="card" style="border-left-color:#5C3A1A">
       <div class="v" style="font-size:1.2rem;">${d.currentLongest.days}d</div>
       <div class="l">Current Longest Stay</div>
-      <div style="margin-top:0.4rem;font-size:0.7rem;color:#C4D8E6;font-family:'Fake Receipt','Courier New',monospace;">${d.currentLongest.name}</div>
-      <div style="font-size:0.65rem;color:#6A8A96;">In since ${formatShortDateTime(parseBookingDate(d.currentLongest.bookDate))}</div>
+      <div style="margin-top:0.4rem;font-size:0.7rem;color:#C9D3C2;font-family:'Fake Receipt','Courier New',monospace;">${d.currentLongest.name}</div>
+      <div style="font-size:0.65rem;color:#83937C;">In since ${formatShortDateTime(parseBookingDate(d.currentLongest.bookDate))}</div>
     </div>` : ''}
   </div>
 
@@ -2168,7 +2192,7 @@ function getDeepStatsHTML(d) {
     <tr><th>Name</th><th>Bookings</th><th>Charges</th></tr>
     ${d.frequentFlyers.map(f => `<tr>
       <td class="val">${f.name}</td>
-      <td style="color:#C8C87A;text-align:center;">${f.count}</td>
+      <td style="color:#C3D6B8;text-align:center;">${f.count}</td>
       <td style="font-size:0.7rem;">${f.charges.length ? f.charges.join(', ') : '<span class="dim">—</span>'}</td>
     </tr>`).join('')}
     ${d.frequentFlyers.length === 0 ? '<tr><td colspan="3" class="dim">No repeat bookings yet</td></tr>' : ''}
@@ -2177,11 +2201,11 @@ function getDeepStatsHTML(d) {
   <h2>Busiest Release Times (from 48hr PDF)</h2>
   <div class="two-col">
     <div>
-      <p style="color:#72807A;font-size:0.7rem;margin-bottom:0.5rem;text-transform:uppercase;">Day of Week</p>
+      <p style="color:#83937C;font-size:0.7rem;margin-bottom:0.5rem;text-transform:uppercase;">Day of Week</p>
       ${dayBar(d.relDays, maxRelDay)}
     </div>
     <div>
-      <p style="color:#72807A;font-size:0.7rem;margin-bottom:0.5rem;text-transform:uppercase;">Hour of Day</p>
+      <p style="color:#83937C;font-size:0.7rem;margin-bottom:0.5rem;text-transform:uppercase;">Hour of Day</p>
       ${hourBar(d.relHours, maxRelHour)}
     </div>
   </div>
@@ -2189,11 +2213,11 @@ function getDeepStatsHTML(d) {
   <h2>Busiest Booking Times (from live roster PDF)</h2>
   <div class="two-col">
     <div>
-      <p style="color:#72807A;font-size:0.7rem;margin-bottom:0.5rem;text-transform:uppercase;">Day of Week</p>
+      <p style="color:#83937C;font-size:0.7rem;margin-bottom:0.5rem;text-transform:uppercase;">Day of Week</p>
       ${dayBar(d.bookDays, maxBookDay)}
     </div>
     <div>
-      <p style="color:#72807A;font-size:0.7rem;margin-bottom:0.5rem;text-transform:uppercase;">Hour of Day</p>
+      <p style="color:#83937C;font-size:0.7rem;margin-bottom:0.5rem;text-transform:uppercase;">Hour of Day</p>
       ${hourBar(d.bookHours, maxBookHour)}
     </div>
   </div>
