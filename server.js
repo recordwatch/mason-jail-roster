@@ -13,6 +13,7 @@ import {
   formatBooked,
   formatReleased,
   normalizeReleaseType,
+  resolveReleaseTypeCode,
   normalizeCharge,
   extractDateFromLine
 } from './roster-data.js';
@@ -932,6 +933,9 @@ app.get('/api/stats', (req, res) => {
         totalReleases: 0,
         currentPopulation: 0,
         avgPopulation: 0,
+        recidivismRate: 0,
+        distinctPeopleBooked: 0,
+        peopleBookedMoreThanOnce: 0,
         commonCharges: [],
         bookingsByDay: {},
         avgStayDays: 0,
@@ -1092,6 +1096,17 @@ for (const line of lines) {
   }
 }
 
+// Recidivism rate: share of distinct people booked more than once in the
+// tracked history.
+let distinctPeopleBooked = bookingsByName.size;
+let peopleBookedMoreThanOnce = 0;
+for (const bookDates of bookingsByName.values()) {
+  if (bookDates.length > 1) peopleBookedMoreThanOnce++;
+}
+const recidivismRate = distinctPeopleBooked > 0
+  ? Math.round((peopleBookedMoreThanOnce / distinctPeopleBooked) * 1000) / 10
+  : 0;
+
 // Calculate stays
 let totalStayHours = 0;
 let stayCount = 0;
@@ -1143,7 +1158,7 @@ const avgStayDays = stayCount > 0 ? Math.round((totalStayHours / stayCount) / 24
         // Extract release type code from "(RBB)" pattern
         const typeMatch = line.match(/\(([A-Z]{2,5})\)\s*\|/);
         if (typeMatch) {
-          const type = typeMatch[1];
+          const type = resolveReleaseTypeCode(typeMatch[1]);
           releaseTypeCounts[type] = (releaseTypeCounts[type] || 0) + 1;
         }
 
@@ -1192,7 +1207,8 @@ const avgStayDays = stayCount > 0 ? Math.round((totalStayHours / stayCount) / 24
             if (mins > 0 && mins < 525600) historyTimeMinutes.push(mins);
           }
           if (entry.releaseType) {
-            historyTypeCounts[entry.releaseType] = (historyTypeCounts[entry.releaseType] || 0) + 1;
+            const type = resolveReleaseTypeCode(entry.releaseType);
+            historyTypeCounts[type] = (historyTypeCounts[type] || 0) + 1;
           }
         }
         if (Object.keys(historyTypeCounts).length > 0) finalReleaseTypes = historyTypeCounts;
@@ -1279,6 +1295,9 @@ const avgStayDays = stayCount > 0 ? Math.round((totalStayHours / stayCount) / 24
       totalReleases,
       currentPopulation,
       avgPopulation,
+      recidivismRate,
+      distinctPeopleBooked,
+      peopleBookedMoreThanOnce,
       commonCharges,
       bookingsByDay,
       avgStayDays,
@@ -1304,24 +1323,56 @@ const avgStayDays = stayCount > 0 ? Math.round((totalStayHours / stayCount) / 24
   }
 });
 
+const PIE_CHART_COLORS = ['#4B8FA8', '#C8C87A', '#0B607C', '#C4D8E6', '#8AA872', '#B08AC4', '#D4956B', '#6A8A96', '#E0C568', '#7AAFC4'];
+
+function polarToCartesian(cx, cy, r, angleDeg) {
+  const angleRad = (angleDeg - 90) * Math.PI / 180;
+  return { x: cx + r * Math.cos(angleRad), y: cy + r * Math.sin(angleRad) };
+}
+
+// Renders a simple SVG pie chart + legend for a list of {label, value} slices.
+function renderPieChart(slices, size = 220) {
+  const total = slices.reduce((sum, s) => sum + s.value, 0);
+  if (total <= 0) return '';
+  const r = size / 2;
+  const cx = r, cy = r;
+
+  let paths;
+  if (slices.length === 1) {
+    paths = `<circle cx="${cx}" cy="${cy}" r="${r}" fill="${slices[0].color}" />`;
+  } else {
+    let angle = 0;
+    paths = slices.map(s => {
+      const sweep = (s.value / total) * 360;
+      const startAngle = angle;
+      const endAngle = angle + sweep;
+      angle = endAngle;
+      const start = polarToCartesian(cx, cy, r, endAngle);
+      const end = polarToCartesian(cx, cy, r, startAngle);
+      const largeArcFlag = sweep > 180 ? 1 : 0;
+      return `<path d="M ${cx} ${cy} L ${start.x.toFixed(2)} ${start.y.toFixed(2)} A ${r} ${r} 0 ${largeArcFlag} 0 ${end.x.toFixed(2)} ${end.y.toFixed(2)} Z" fill="${s.color}"><title>${s.label}: ${s.value} (${((s.value / total) * 100).toFixed(1)}%)</title></path>`;
+    }).join('');
+  }
+
+  const legend = slices.map(s => `
+    <div style="display:flex; align-items:center; gap:0.5rem; font-size:0.8rem; color:#C4D8E6;">
+      <span style="display:inline-block; width:12px; height:12px; border-radius:3px; background:${s.color}; flex-shrink:0;"></span>
+      <span>${s.label} — ${((s.value / total) * 100).toFixed(1)}%</span>
+    </div>
+  `).join('');
+
+  return `
+    <div style="display:flex; flex-wrap:wrap; gap:2rem; align-items:center; margin-top:1.5rem;">
+      <svg width="${size}" height="${size}" viewBox="0 0 ${size} ${size}">${paths}</svg>
+      <div style="display:flex; flex-direction:column; gap:0.5rem;">${legend}</div>
+    </div>
+  `;
+}
+
 function getStatsHTML(stats) {
   const maxCharge = Math.max(...stats.commonCharges.map(c => c.count), 1);
   const maxDay = Math.max(...Object.values(stats.bookingsByDay), 1);
 
-  // ADD THIS ↓↓↓
-  const dataBanner = stats.dataCollectionStart ? `
-    <div style="background: #1A3035; border-left: 4px solid #4B8FA8; padding: 1rem; margin-bottom: 1.5rem; border-radius: 4px;">
-      <p style="margin: 0; color: #F5F0E8;">
-        Data collection started: <strong>${stats.dataCollectionStart}</strong>
-        (${stats.daysOfData} days of tracking)
-      </p>
-      <p style="margin: 0.5rem 0 0 0; font-size: 0.9rem; color: #A8C4D0;">
-        Statistics become more accurate as more data is collected over time.
-      </p>
-    </div>
-  ` : '';
-  // ↑↑↑ END OF NEW SECTION
-  
   return `<!DOCTYPE html>
 <html>
 <head>
@@ -1510,8 +1561,8 @@ function getStatsHTML(stats) {
   <div class="container">
     <a href="/api/status" class="back-link">← Back to Status</a>
     <h1>Statistics Dashboard</h1>
-    <p class="subtitle">Data from the Mason County Jail Roster</p>
-    
+    <p class="subtitle">Data from the Mason County Jail Roster${stats.dataCollectionStart ? ` since ${stats.dataCollectionStart}` : ''}</p>
+
     <div class="stats-grid">
       <div class="stat-card">
         <div class="stat-value">${stats.totalBookings.toLocaleString()}</div>
@@ -1528,6 +1579,10 @@ function getStatsHTML(stats) {
       <div class="stat-card blue">
         <div class="stat-value">${stats.avgPopulation}</div>
         <div class="stat-label">Avg Daily Population</div>
+      </div>
+      <div class="stat-card purple">
+        <div class="stat-value">${stats.recidivismRate}%</div>
+        <div class="stat-label">Recidivism Rate (${stats.peopleBookedMoreThanOnce.toLocaleString()} of ${stats.distinctPeopleBooked.toLocaleString()} people booked more than once)</div>
       </div>
     </div>
 
@@ -1571,14 +1626,21 @@ function getStatsHTML(stats) {
       </div>
     </div>
 
-    ${Object.keys(stats.releaseTypes).length > 0 ? `
+    ${(() => {
+      const releaseTypeEntries = Object.entries(stats.releaseTypes)
+        .filter(([code]) => Object.prototype.hasOwnProperty.call(RELEASE_TYPE_NAMES, code))
+        .sort((a, b) => b[1] - a[1]);
+      if (releaseTypeEntries.length === 0) return '';
+      const pieSlices = releaseTypeEntries.map(([code, count], i) => ({
+        label: `${code} — ${RELEASE_TYPE_NAMES[code] || code}`,
+        value: count,
+        color: PIE_CHART_COLORS[i % PIE_CHART_COLORS.length]
+      }));
+      return `
 <div class="chart-container">
   <div class="chart-title">Release Type Breakdown</div>
   <div class="release-types">
-    ${Object.entries(stats.releaseTypes)
-      .filter(([code]) => Object.prototype.hasOwnProperty.call(RELEASE_TYPE_NAMES, code))
-      .sort((a, b) => b[1] - a[1])
-      .map(([code, count]) => `
+    ${releaseTypeEntries.map(([code, count]) => `
       <div class="release-type">
         <div class="release-type-count">${count}</div>
         <div style="font-size: 1rem; font-weight: bold; color: #C8C87A; margin: 0.25rem 0;">${code}</div>
@@ -1586,8 +1648,9 @@ function getStatsHTML(stats) {
       </div>
     `).join('')}
   </div>
-
-</div>` : ''}
+  ${renderPieChart(pieSlices)}
+</div>`;
+    })()}
 
     ${stats.avgTimeServedMins > 0 ? `
     <div class="chart-container">
@@ -1716,7 +1779,7 @@ app.get('/api/deepstats', async (req, res) => {
       const bail = parseFloat((e.bail || '$0').replace(/[$,]/g, ''));
       const ts = (e.timeServed || '').match(/(\d+)d(\d+)h(\d+)m/);
       const mins = ts ? parseInt(ts[1])*1440 + parseInt(ts[2])*60 + parseInt(ts[3]) : 0;
-      const type = e.releaseType || 'UNK';
+      const type = e.releaseType ? resolveReleaseTypeCode(e.releaseType) : 'UNK';
       for (const charge of charges) {
         if (!charge) continue;
         if (bail > 0) {
