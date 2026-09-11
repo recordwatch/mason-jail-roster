@@ -8,16 +8,25 @@ import path from 'node:path';
 // SQLite file at import time based on RAILWAY_VOLUME_MOUNT_PATH — set that
 // to an isolated temp dir before roster-data.js is ever imported, same as
 // events.test.js does, so tests don't touch the real /data path.
-let normalizeCharge, normalizeReleaseType, resolveReleaseTypeCode;
+let normalizeCharge, normalizeReleaseType, resolveReleaseTypeCode, categorizeChargeType;
 
 before(async () => {
   const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'mason-roster-data-test-'));
   process.env.RAILWAY_VOLUME_MOUNT_PATH = tmpDir;
-  ({ normalizeCharge, normalizeReleaseType, resolveReleaseTypeCode } = await import('../roster-data.js'));
+  ({ normalizeCharge, normalizeReleaseType, resolveReleaseTypeCode, categorizeChargeType } = await import('../roster-data.js'));
 });
 
 test('normalizeCharge collapses a bare "Protect" fragment into PROTECTION ORDER VIOLATION', () => {
   assert.equal(normalizeCharge('Protect'), 'PROTECTION ORDER VIOLATION');
+});
+
+test('normalizeCharge treats a bare "Simple" fragment as Simple Assault, not a drug charge', () => {
+  // "Assault, Simple" is a single real charge with an internal comma; the
+  // charges field gets comma-split upstream, so "Simple" arrives here as
+  // its own fragment and must resolve the same way "Assault" does so the
+  // post-split dedup collapses them back into one ASSAULT entry.
+  assert.equal(normalizeCharge('Assault'), 'ASSAULT');
+  assert.equal(normalizeCharge('Simple'), 'ASSAULT');
 });
 
 test('normalizeCharge strips a statute prefix with no space and/or a lowercase title letter', () => {
@@ -141,4 +150,38 @@ test('normalizeReleaseType groups JRRCB/IIRCB with RCB/RBB into the BAIL bucket'
   assert.equal(normalizeReleaseType('JRRCB'), 'BAIL');
   assert.equal(normalizeReleaseType('IIRCB'), 'BAIL');
   assert.equal(normalizeReleaseType('SRRBB'), 'BAIL');
+});
+
+test('categorizeChargeType groups violent charges', () => {
+  assert.equal(categorizeChargeType('ASSAULT'), 'Violent Crime');
+  assert.equal(categorizeChargeType('THREATENING/INTIMIDATION'), 'Violent Crime');
+  assert.equal(categorizeChargeType('KIDNAPPING'), 'Violent Crime');
+  assert.equal(categorizeChargeType('SEX OFFENSE'), 'Violent Crime');
+  assert.equal(categorizeChargeType('Robbery'), 'Violent Crime');
+  assert.equal(categorizeChargeType('Robbery/Burglary (Strongarm)'), 'Violent Crime');
+});
+
+test('categorizeChargeType groups property charges', () => {
+  assert.equal(categorizeChargeType('THEFT'), 'Property Crime');
+  assert.equal(categorizeChargeType('BURGLARY'), 'Property Crime');
+  assert.equal(categorizeChargeType('RECEIVING/POSSESSING STOLEN PROPERTY'), 'Property Crime');
+  assert.equal(categorizeChargeType('THEFT FROM MOTOR VEHICLE'), 'Property Crime');
+  assert.equal(categorizeChargeType('FRAUD'), 'Property Crime');
+});
+
+test('categorizeChargeType groups drug and DUI/traffic charges', () => {
+  assert.equal(categorizeChargeType('DRUG POSSESSION'), 'Drug Offense');
+  assert.equal(categorizeChargeType('DUI / ALCOHOL OFFENSE'), 'DUI / Traffic');
+  assert.equal(categorizeChargeType('Traffic Offense'), 'DUI / Traffic');
+});
+
+test('categorizeChargeType groups court/supervision violations separately from resisting', () => {
+  assert.equal(categorizeChargeType('PROBATION VIOLATION'), 'Court / Supervision Violation');
+  assert.equal(categorizeChargeType('FAILURE TO APPEAR'), 'Court / Supervision Violation');
+  assert.equal(categorizeChargeType('RESISTING/OBSTRUCTING LAW ENFORCEMENT'), 'Resisting/Obstructing Law Enforcement');
+});
+
+test('categorizeChargeType falls back to Other for unrecognized charges', () => {
+  assert.equal(categorizeChargeType('OTHER'), 'Other');
+  assert.equal(categorizeChargeType('Some Unrecognized Charge'), 'Other');
 });

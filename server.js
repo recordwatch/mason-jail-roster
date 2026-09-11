@@ -15,6 +15,7 @@ import {
   normalizeReleaseType,
   resolveReleaseTypeCode,
   normalizeCharge,
+  categorizeChargeType,
   extractDateFromLine
 } from './roster-data.js';
 import {
@@ -1888,6 +1889,27 @@ app.get('/api/deepstats', async (req, res) => {
         ? Math.round(((sortedGaps[gapsMid - 1] + sortedGaps[gapsMid]) / 2) * 10) / 10
         : Math.round(sortedGaps[gapsMid] * 10) / 10;
 
+    // ── Charge type breakdown ───────────────────────────────────────────────
+    // What share of arrestees had at least one charge of a given broad type
+    // (violent, property, drug, etc.) — a person with charges in more than
+    // one category counts toward each, so this deliberately does not sum to
+    // 100%; it answers "what % of people were arrested on a drug charge",
+    // not "what % of charges were drug charges".
+    const peopleByChargeType = {};
+    for (const charges of nameToCharges.values()) {
+      const categories = new Set(charges.map(categorizeChargeType));
+      for (const cat of categories) {
+        peopleByChargeType[cat] = (peopleByChargeType[cat] || 0) + 1;
+      }
+    }
+    const chargeTypeBreakdown = Object.entries(peopleByChargeType)
+      .map(([category, count]) => ({
+        category,
+        count,
+        pct: distinctPeopleBooked > 0 ? Math.round((count / distinctPeopleBooked) * 1000) / 10 : 0
+      }))
+      .sort((a, b) => b.count - a.count);
+
     // ── Busiest release day/time (from history PDF) ───────────────────────────
     const relDays  = { Sun:0, Mon:0, Tue:0, Wed:0, Thu:0, Fri:0, Sat:0 };
     const relHours = Array(24).fill(0);
@@ -1939,6 +1961,7 @@ app.get('/api/deepstats', async (req, res) => {
       frequentFlyers,
       totalArrestsTracked, distinctPeopleBooked, peopleBookedMoreThanOnce, recidivismRate,
       meanDaysBetweenArrests, medianDaysBetweenArrests,
+      chargeTypeBreakdown,
       relDays, relHours, bookDays, bookHours,
       currentLongest,
     }));
@@ -2039,6 +2062,18 @@ function getDeepStatsHTML(d) {
     .two-col{display:grid;grid-template-columns:1fr 1fr;gap:1.5rem}
     @media(max-width:700px){.two-col{grid-template-columns:1fr}}
     .chip{display:inline-block;background:#141F17;border:1px solid #2E4433;padding:1px 6px;border-radius:3px;font-size:0.7rem;margin:1px;color:#C9D3C2}
+    .charge-type-list{display:flex;flex-direction:column;gap:0.5rem;margin-top:0.5rem}
+    .charge-type-row{display:grid;grid-template-columns:220px 1fr 100px;align-items:center;gap:0.75rem}
+    @media(max-width:700px){.charge-type-row{grid-template-columns:130px 1fr 80px;font-size:0.75rem}}
+    .charge-type-label{color:#C9D3C2;font-size:0.8rem}
+    .charge-type-bar-track{background:#141F17;border-radius:4px;height:14px;overflow:hidden}
+    .charge-type-bar-fill{background:linear-gradient(90deg,#547048,#A9BE9C);height:100%;border-radius:4px}
+    .charge-type-pct{color:#E7EBDF;font-weight:bold;font-size:0.8rem;text-align:right}
+    th.sortable{cursor:pointer;user-select:none}
+    th.sortable:hover{color:#C9D3C2}
+    th.sortable::after{content:'';display:inline-block;width:0.6em}
+    th.sorted-asc::after{content:'▴';display:inline-block;width:0.6em;color:#A9BE9C}
+    th.sorted-desc::after{content:'▾';display:inline-block;width:0.6em;color:#A9BE9C}
   </style>
 </head>
 <body>
@@ -2069,6 +2104,19 @@ function getDeepStatsHTML(d) {
       <div class="v">${d.medianDaysBetweenArrests > 0 ? d.medianDaysBetweenArrests + 'd' : '—'}</div>
       <div class="l">Median Time Between Arrests (Repeat Offenders)</div>
     </div>
+  </div>
+
+  <h2>Charge Type Breakdown</h2>
+  <p class="subtitle" style="margin-bottom:0.75rem;">% of distinct arrestees with at least one charge of this type — a person charged with, say, both a drug and a violent offense counts toward both, so this does not sum to 100%.</p>
+  <div class="charge-type-list">
+    ${d.chargeTypeBreakdown.map(c => `
+      <div class="charge-type-row">
+        <div class="charge-type-label">${c.category}</div>
+        <div class="charge-type-bar-track"><div class="charge-type-bar-fill" style="width:${c.pct}%"></div></div>
+        <div class="charge-type-pct">${c.pct}% <span class="dim">(${c.count})</span></div>
+      </div>
+    `).join('')}
+    ${d.chargeTypeBreakdown.length === 0 ? '<p class="dim">No charge data yet</p>' : ''}
   </div>
 
   <h2>Release Type Breakdown</h2>
@@ -2131,15 +2179,25 @@ function getDeepStatsHTML(d) {
   </table>
 
   <h2>Time Served by Charge</h2>
-  <table>
-    <tr><th>Charge</th><th>Mean</th><th>Median</th><th>Count</th></tr>
-    ${timeByChargeArr.map(r => `<tr>
+  <p class="subtitle" style="margin-bottom:0.5rem;">Click a column to sort — e.g. by Mean to see the longest average holds.</p>
+  <table id="time-by-charge-table">
+    <thead>
+      <tr>
+        <th class="sortable" data-sort="charge" data-type="text">Charge</th>
+        <th class="sortable" data-sort="mean" data-type="num">Mean <span class="dim" style="font-weight:normal;">(average)</span></th>
+        <th class="sortable" data-sort="median" data-type="num">Median</th>
+        <th class="sortable sorted-desc" data-sort="count" data-type="num">Count</th>
+      </tr>
+    </thead>
+    <tbody>
+    ${timeByChargeArr.map(r => `<tr data-mean="${r.avgMins}" data-median="${r.medianMins}" data-count="${r.count}" data-charge="${r.charge.toLowerCase().replace(/"/g, '&quot;')}">
       <td>${r.charge}</td>
       <td class="val">${formatMinutes(r.avgMins)}</td>
       <td class="val">${formatMinutes(r.medianMins)}</td>
       <td class="dim">${r.count}</td>
     </tr>`).join('')}
     ${timeByChargeArr.length === 0 ? '<tr><td colspan="4" class="dim">No data yet</td></tr>' : ''}
+    </tbody>
   </table>
 
   <h2>Release Type by Charge</h2>
@@ -2240,6 +2298,32 @@ function getDeepStatsHTML(d) {
   </table>
 
 </div>
+<script>
+  document.querySelectorAll('table').forEach(table => {
+    const headers = table.querySelectorAll('th.sortable');
+    if (!headers.length) return;
+    const tbody = table.querySelector('tbody') || table;
+    headers.forEach(th => {
+      th.addEventListener('click', () => {
+        const key = th.dataset.sort;
+        const type = th.dataset.type || 'text';
+        const wasDesc = th.classList.contains('sorted-desc');
+        const dir = wasDesc ? 'asc' : 'desc';
+        headers.forEach(h => h.classList.remove('sorted-asc', 'sorted-desc'));
+        th.classList.add(dir === 'asc' ? 'sorted-asc' : 'sorted-desc');
+        const rows = [...tbody.querySelectorAll('tr')].filter(r => r.dataset[key] !== undefined);
+        rows.sort((a, b) => {
+          let av = a.dataset[key], bv = b.dataset[key];
+          if (type === 'num') { av = parseFloat(av) || 0; bv = parseFloat(bv) || 0; }
+          if (av < bv) return dir === 'asc' ? -1 : 1;
+          if (av > bv) return dir === 'asc' ? 1 : -1;
+          return 0;
+        });
+        rows.forEach(r => tbody.appendChild(r));
+      });
+    });
+  });
+</script>
 </body>
 </html>`;
 }

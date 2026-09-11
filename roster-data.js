@@ -227,8 +227,12 @@ function normalizeCharge(charge) {
   // continuation-joining fix in parser.js), other times just inconsistent
   // labeling of the same charge across records.
   if (/^PROBATION$|PROBATION.*(VIOL|VIO)|PAROLE.*(VIOL|VIO)/.test(u))                   return 'PROBATION VIOLATION';
-  if (/^ASSAULT|SIMPLE ASSAULT|^KNIFE$/.test(u))                                        return 'ASSAULT';
-  if (/CONTROLLED SUBSTANCE|SIMPLE POSSESSION|^SIMPLE$|^POSESSION$|^POSSESSION$|^CONT SUBST$|PARAPHENALIA|PARAPHERNALIA/.test(u)) return 'DRUG POSSESSION';
+  // "Assault, Simple" is one real charge (a comma-qualified degree, seen
+  // directly in production roster PDF text), but the charges field is
+  // comma-split into individual charges upstream, so "Simple" arrives here
+  // as its own fragment -- it means "Simple Assault", not a drug charge.
+  if (/^ASSAULT|SIMPLE ASSAULT|^KNIFE$|^SIMPLE$/.test(u))                               return 'ASSAULT';
+  if (/CONTROLLED SUBSTANCE|SIMPLE POSSESSION|^POSESSION$|^CONT SUBST$|PARAPHENALIA|PARAPHERNALIA/.test(u)) return 'DRUG POSSESSION';
   if (/^PROTECT$|VIOLATION.*(NO.CONTACT|NCO)|NO.CONTACT.*(VIOL|VIO)|PROPECT|PROTECT.*ORDER|PROTECTION.*ORDER/.test(u)) return 'PROTECTION ORDER VIOLATION';
   if (/FAILURE.TO.APPEAR|WARRANT.ARREST/.test(u))                                        return 'FAILURE TO APPEAR';
   if (/SEX OFFENSE|SEX.*OFFENDER/.test(u))                                               return 'SEX OFFENSE';
@@ -245,6 +249,33 @@ function normalizeCharge(charge) {
   if (/^ALL OTHER$|^OTHER$|^NOT CLASSIFIED$/.test(u))                                    return 'OTHER';
 
   return c.trim();
+}
+
+// Broad category for a (normalizeCharge-normalized) charge string, used to
+// answer "what share of arrestees had a charge of this general type" — a
+// coarser grouping than normalizeCharge's near-duplicate collapsing above.
+function categorizeChargeType(charge) {
+  if (!charge) return 'Other';
+  const u = charge.toUpperCase();
+
+  if (/^ASSAULT$|THREATENING\/INTIMIDATION|^KIDNAPPING$|SEX OFFENSE|^ROBBERY|STRONGARM|DOMESTIC VIOLENCE|NEGLIGENT HOMICIDE|FORCIBLE RAPE/.test(u))
+    return 'Violent Crime';
+  if (/^THEFT$|^BURGLARY$|RECEIVING\/POSSESSING STOLEN PROPERTY|THEFT FROM MOTOR VEHICLE|^FRAUD$|^VANDALISM$|^TRESPASSING$|CRIMINAL MISCHIEF|^ARSON$|VEHICLE THEFT TOOLS/.test(u))
+    return 'Property Crime';
+  if (/DRUG POSSESSION/.test(u))
+    return 'Drug Offense';
+  if (/DUI \/ ALCOHOL OFFENSE|^TRAFFIC OFFENSE$|^TRAFFIC ACCIDENT$|^HIT AND RUN$/.test(u))
+    return 'DUI / Traffic';
+  if (/^OTHER WEAPON$|^WEAPONS OFFENSE$|^EXPLOSIVES$|INCENDIARY PROBLEM/.test(u))
+    return 'Weapons Offense';
+  if (/PROBATION VIOLATION|FAILURE TO APPEAR|PROTECTION ORDER VIOLATION|FAILURE COMPLY COND|^COURT COMMITMENT$/.test(u))
+    return 'Court / Supervision Violation';
+  if (/RESISTING\/OBSTRUCTING LAW ENFORCEMENT/.test(u))
+    return 'Resisting/Obstructing Law Enforcement';
+  if (/^DISORDERLY CONDUCT$|^PROSTITUTION$|BUSINESS OR LICENSE VIOLATION|ANIMAL PROBLEM/.test(u))
+    return 'Public Order';
+
+  return 'Other';
 }
 
 // Helper function to extract date from log line
@@ -267,5 +298,6 @@ export {
   normalizeReleaseType,
   resolveReleaseTypeCode,
   normalizeCharge,
+  categorizeChargeType,
   extractDateFromLine
 };
