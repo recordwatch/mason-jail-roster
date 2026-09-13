@@ -7,11 +7,26 @@ import { fetchReleaseStats } from '../roster-data.js';
 import { toIsoDateTime } from '../utils.js';
 import { STORAGE_DIR, RELEASE_STATS_HISTORY_FILE, PDF_URL, RELEASE_STATS_URL } from '../config.js';
 import { insertEventsFromLine, insertRelease, clearAllData } from '../events.js';
+import db, { DB_PATH } from '../db.js';
 
 // Auth (requireAdminKey) is applied at the app level in server.js via
 // app.use('/api/admin', ...) / app.use('/api/debug', ...) before this
 // router is mounted, so every route below is already gated by the admin key.
 const router = express.Router();
+
+// Downloads a self-contained snapshot of the SQLite database for local
+// analysis (sqlite3, pandas, DB Browser, etc.). The DB runs in WAL mode, so
+// recent writes can sit in a separate -wal file rather than mason.sqlite
+// itself — checkpoint first so the single downloaded file is complete and
+// nothing needs to be fetched alongside it.
+router.get('/api/admin/download-db', (req, res) => {
+  try {
+    db.exec('PRAGMA wal_checkpoint(TRUNCATE);');
+    res.download(DB_PATH, 'mason.sqlite');
+  } catch (e) {
+    res.status(500).send('Error: ' + e.message);
+  }
+});
 
 // One-time (but safely re-runnable) migration: rebuild the SQLite events/
 // releases tables from the current change_log.txt and release_stats_history.json.
