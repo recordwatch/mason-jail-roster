@@ -11,11 +11,14 @@ export const RELEASE_STATS_HISTORY_FILE = path.join(STORAGE_DIR, 'release_stats_
 export const ADMIN_KEY = process.env.ADMIN_KEY;
 
 // The landing page aggregates current population and changes-detected
-// counts across all four county monitors, not just Mason's own data.
+// counts across all county monitors, not just Mason's own data.
 export const SIBLING_MONITORS = [
-  { name: 'kitsap',   base: 'https://recordwatch.github.io/ksco-scraper/data' },
-  { name: 'pierce',   base: 'https://recordwatch.github.io/pierce-jail-roster/data' },
-  { name: 'thurston', base: 'https://recordwatch.github.io/thurston-jail-roster/data' },
+  { name: 'kitsap',       base: 'https://recordwatch.github.io/ksco-scraper/data' },
+  { name: 'pierce',       base: 'https://recordwatch.github.io/pierce-jail-roster/data' },
+  { name: 'thurston',     base: 'https://recordwatch.github.io/thurston-jail-roster/data' },
+  { name: 'whatcom',      base: 'https://recordwatch.github.io/whatcom-jail-monitor/data' },
+  { name: 'clallam',      base: 'https://recordwatch.github.io/clallam-jail-monitor/data' },
+  { name: 'grays-harbor', base: 'https://recordwatch.github.io/grays-harbor-jail-monitor/data' },
 ];
 
 export const RELEASE_TYPE_NAMES = {
