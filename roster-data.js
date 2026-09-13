@@ -177,11 +177,29 @@ function formatReleased(b, stats, isPending = false) {
   };
 }
 
+// Mason's release-stats PDF tags some releases with a record-source prefix
+// glued onto the same reason code used everywhere else — JRR (Jail Release
+// Record), SRR (Sheriff Release Record), IIR (a third report section) — so
+// e.g. JRRCB and IIRBM are the exact same release reason as RCB and RBM,
+// just logged from a different section. Strip the prefix and resolve back
+// to the plain code so one release reason isn't split three ways in stats.
+function resolveReleaseTypeCode(code) {
+  if (!code) return code;
+  const upper = code.toUpperCase().trim();
+  for (const prefix of ['JRR', 'SRR', 'IIR']) {
+    if (upper.startsWith(prefix) && upper.length > prefix.length) {
+      const base = 'R' + upper.slice(prefix.length);
+      if (Object.prototype.hasOwnProperty.call(RELEASE_TYPE_NAMES, base)) return base;
+    }
+  }
+  return upper;
+}
+
 // Normalize release type codes into consolidated buckets
 function normalizeReleaseType(code) {
   if (!code) return 'UNK';
-  const upper = code.toUpperCase().trim();
-  if (['RPR', 'ROA', 'JRRPR', 'SRRPR'].includes(upper)) return 'PR';
+  const upper = resolveReleaseTypeCode(code);
+  if (['RPR', 'ROA'].includes(upper)) return 'PR';
   if (['RBB', 'RCB'].includes(upper)) return 'BAIL';
   if (['RNHM', 'MIS'].includes(upper)) return 'NO_HOLD';
   return upper;
@@ -190,19 +208,74 @@ function normalizeReleaseType(code) {
 // Normalize charge strings to collapse near-duplicates
 function normalizeCharge(charge) {
   if (!charge) return '';
-  // Strip leading RCW codes (e.g. "46.61.021 DUI ALCOHOL OR DRUGS" → "DUI ALCOHOL OR DRUGS")
-  let c = charge.trim().replace(/^\d+\.\d+[\.\d]*\s+/, '').trim();
+  // Strip a leading RCW-style statute citation — e.g. "46.61.021", "9A.56.360",
+  // "9a.56.360" (lowercase title letter), optionally followed by a subsection
+  // like "(6)(A)", with or without a space before the offense text — and
+  // separately strip a bare leading parenthetical qualifier like "(O)" when
+  // there's no statute code at all (e.g. "(O)Traffic Accident"). Real
+  // production data has all of these variants.
+  let c = charge.trim()
+    .replace(/^\d+[A-Za-z]?(\.\d+)*(\([^)]*\))*\s*/, '')
+    .replace(/^\([^)]*\)\s*/, '')
+    .trim();
   const u = c.toUpperCase();
 
+  // Below, several categories fold together charges that read as distinct
+  // offenses but are, per the site operator's own review of the data,
+  // the same real-world category — often two fragments of one offense
+  // description that wrapped across lines in the source PDF (see the
+  // continuation-joining fix in parser.js), other times just inconsistent
+  // labeling of the same charge across records.
   if (/^PROBATION$|PROBATION.*(VIOL|VIO)|PAROLE.*(VIOL|VIO)/.test(u))                   return 'PROBATION VIOLATION';
-  if (/^ASSAULT|SIMPLE ASSAULT/.test(u))                                                 return 'ASSAULT';
-  if (/SIMPLE POSSESSION|^SIMPLE$/.test(u))                                              return 'DRUG POSSESSION';
-  if (/VIOLATION.*(NO.CONTACT|NCO)|NO.CONTACT.*(VIOL|VIO)|PROPECT|PROTECT.*ORDER|PROTECTION.*ORDER/.test(u)) return 'PROTECTION ORDER VIOLATION';
+  // "Assault, Simple" is one real charge (a comma-qualified degree, seen
+  // directly in production roster PDF text), but the charges field is
+  // comma-split into individual charges upstream, so "Simple" arrives here
+  // as its own fragment -- it means "Simple Assault", not a drug charge.
+  if (/^ASSAULT|SIMPLE ASSAULT|^KNIFE$|^SIMPLE$/.test(u))                               return 'ASSAULT';
+  if (/CONTROLLED SUBSTANCE|SIMPLE POSSESSION|^POSESSION$|^CONT SUBST$|PARAPHENALIA|PARAPHERNALIA/.test(u)) return 'DRUG POSSESSION';
+  if (/^PROTECT$|VIOLATION.*(NO.CONTACT|NCO)|NO.CONTACT.*(VIOL|VIO)|PROPECT|PROTECT.*ORDER|PROTECTION.*ORDER/.test(u)) return 'PROTECTION ORDER VIOLATION';
   if (/FAILURE.TO.APPEAR|WARRANT.ARREST/.test(u))                                        return 'FAILURE TO APPEAR';
-  if (/SEX.*OFFENDER.*(FAIL|FAILURE).*REGISTER/.test(u))                                 return 'SEX OFFENDER FAIL TO REGISTER';
+  if (/SEX OFFENSE|SEX.*OFFENDER/.test(u))                                               return 'SEX OFFENSE';
   if (/STRONGARM/.test(u))                                                               return 'Robbery/Burglary (Strongarm)';
+  if (/^RESISTING$|INTERFERING.*POLICE|OBSTRUCTING.*JUSTICE|^POLICE$/.test(u))           return 'RESISTING/OBSTRUCTING LAW ENFORCEMENT';
+  if (/^BURGLARY|^RESIDENT$|UNLAWF.*ENT/.test(u))                                        return 'BURGLARY';
+  if (/^THEFT$|^PROPERTY$/.test(u))                                                      return 'THEFT';
+  if (/^THREATENING|^INTIMIDATION/.test(u))                                              return 'THREATENING/INTIMIDATION';
+  if (/^KIDNAPPING|^ABDUCTION/.test(u))                                                  return 'KIDNAPPING';
+  if (/^RECEIVE$|POSESS.*STOLEN|POSSESS.*STOLEN/.test(u))                                return 'RECEIVING/POSSESSING STOLEN PROPERTY';
+  if (/FRAUD|FORGERY|^CREDIT CARD$|IMPERSONATION/.test(u))                               return 'FRAUD';
+  if (/\bDUI\b|^ALCOHOL OFFENSE$/.test(u))                                               return 'DUI / ALCOHOL OFFENSE';
+  if (/^VEHICLE:\s*AUTOMOBILE$|FROM MTR VEH/.test(u))                                    return 'THEFT FROM MOTOR VEHICLE';
+  if (/^ALL OTHER$|^OTHER$|^NOT CLASSIFIED$/.test(u))                                    return 'OTHER';
 
   return c.trim();
+}
+
+// Broad category for a (normalizeCharge-normalized) charge string, used to
+// answer "what share of arrestees had a charge of this general type" — a
+// coarser grouping than normalizeCharge's near-duplicate collapsing above.
+function categorizeChargeType(charge) {
+  if (!charge) return 'Other';
+  const u = charge.toUpperCase();
+
+  if (/^ASSAULT$|THREATENING\/INTIMIDATION|^KIDNAPPING$|SEX OFFENSE|^ROBBERY|STRONGARM|DOMESTIC VIOLENCE|NEGLIGENT HOMICIDE|FORCIBLE RAPE/.test(u))
+    return 'Violent Crime';
+  if (/^THEFT$|^BURGLARY$|RECEIVING\/POSSESSING STOLEN PROPERTY|THEFT FROM MOTOR VEHICLE|^FRAUD$|^VANDALISM$|^TRESPASSING$|CRIMINAL MISCHIEF|^ARSON$|VEHICLE THEFT TOOLS/.test(u))
+    return 'Property Crime';
+  if (/DRUG POSSESSION/.test(u))
+    return 'Drug Offense';
+  if (/DUI \/ ALCOHOL OFFENSE|^TRAFFIC OFFENSE$|^TRAFFIC ACCIDENT$|^HIT AND RUN$/.test(u))
+    return 'DUI / Traffic';
+  if (/^OTHER WEAPON$|^WEAPONS OFFENSE$|^EXPLOSIVES$|INCENDIARY PROBLEM/.test(u))
+    return 'Weapons Offense';
+  if (/PROBATION VIOLATION|FAILURE TO APPEAR|PROTECTION ORDER VIOLATION|FAILURE COMPLY COND|^COURT COMMITMENT$/.test(u))
+    return 'Court / Supervision Violation';
+  if (/RESISTING\/OBSTRUCTING LAW ENFORCEMENT/.test(u))
+    return 'Resisting/Obstructing Law Enforcement';
+  if (/^DISORDERLY CONDUCT$|^PROSTITUTION$|BUSINESS OR LICENSE VIOLATION|ANIMAL PROBLEM/.test(u))
+    return 'Public Order';
+
+  return 'Other';
 }
 
 // Helper function to extract date from log line
@@ -223,6 +296,8 @@ export {
   formatBooked,
   formatReleased,
   normalizeReleaseType,
+  resolveReleaseTypeCode,
   normalizeCharge,
+  categorizeChargeType,
   extractDateFromLine
 };

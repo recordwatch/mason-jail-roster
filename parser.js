@@ -77,7 +77,19 @@ function extractBookings(rosterText) {
           cleaned = cleaned.trim();
 
           if (cleaned.length > 2) {
-            charges.push(cleaned);
+            // A long offense description that wraps across multiple PDF
+            // lines repeats the court-type marker on each wrapped line, so
+            // each fragment would otherwise be pushed as its own charge
+            // (e.g. "Burglary" / "Resident" / "Unlawf Ent" as three separate
+            // charges instead of one "Burglary Resident Unlawf Ent"). Every
+            // real charge line starts with a statute code (a leading digit);
+            // a fragment with no leading digit is a continuation of the
+            // previous charge, not a new one.
+            if (!/^\d/.test(t) && charges.length > 0) {
+              charges[charges.length - 1] += ' ' + cleaned;
+            } else {
+              charges.push(cleaned);
+            }
           }
         }
       }
