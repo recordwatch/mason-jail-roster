@@ -232,6 +232,7 @@ app.get('/api/status', async (req, res) => {
       <a href="https://recordwatch.github.io/thurston-jail-roster/" target="_blank" rel="noopener noreferrer" class="nav-btn">Visit Thurston County Jail Monitor</a>
       <a href="https://recordwatch.github.io/grays-harbor-jail-monitor/" target="_blank" rel="noopener noreferrer" class="nav-btn">Visit Grays Harbor County Jail Monitor</a>
       <a href="https://recordwatch.github.io/clallam-jail-monitor/" target="_blank" rel="noopener noreferrer" class="nav-btn">Visit Clallam County Jail Monitor</a>
+      <a href="https://recordwatch.github.io/whatcom-jail-monitor/" target="_blank" rel="noopener noreferrer" class="nav-btn">Visit Whatcom County Jail Monitor</a>
     </div>
     <details class="status">
       <summary>
