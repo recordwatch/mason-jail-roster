@@ -1805,6 +1805,23 @@ app.get('/api/deepstats', async (req, res) => {
     }
     bailLeaderboardRaw.sort((a, b) => b.bailAmt - a.bailAmt);
     const top10Bail = bailLeaderboardRaw.slice(0, 10);
+
+    // ── Long holds on low bail ──────────────────────────────────────────────
+    // Exact time in custody (booking to release, to the minute) compared
+    // against bail amount, to surface people held a long time on a
+    // comparatively small financial bail — cases where the hold looks driven
+    // by inability to pay rather than by the underlying charge.
+    const LOW_BAIL_THRESHOLD = 1000;
+    const longHoldsLowBail = bailLeaderboardRaw
+      .filter(e => e.bailAmt > 0 && e.bailAmt <= LOW_BAIL_THRESHOLD)
+      .map(e => {
+        const ts = (e.timeServed || '').match(/(\d+)d(\d+)h(\d+)m/);
+        const mins = ts ? parseInt(ts[1]) * 1440 + parseInt(ts[2]) * 60 + parseInt(ts[3]) : 0;
+        return { ...e, heldMins: mins };
+      })
+      .filter(e => e.heldMins > 0 && e.heldMins < 525600)
+      .sort((a, b) => b.heldMins - a.heldMins)
+      .slice(0, 15);
     
     // ── Per-charge correlations ───────────────────────────────────────────────
     const bailByCharge = {}, timeByCharge = {}, rtByCharge = {};
@@ -1955,7 +1972,7 @@ app.get('/api/deepstats', async (req, res) => {
     res.send(getDeepStatsHTML({
       history, rtStats, nameToCharges,
       bailToday, bailWeek, bailMonth, bailYTD, bailCount, noBailCount,
-      maxBailEntry, top10Bail,
+      maxBailEntry, top10Bail, longHoldsLowBail, lowBailThreshold: LOW_BAIL_THRESHOLD,
       bailByCharge, timeByCharge, rtByCharge,
       under24, over24,
       histMaxMins, histMaxEntry,
@@ -2167,6 +2184,20 @@ function getDeepStatsHTML(d) {
       <td style="font-size:0.7rem;">${e.charges.length ? e.charges.join(', ') : '<span class="dim">—</span>'}</td>
     </tr>`).join('')}
     ${d.top10Bail.length === 0 ? '<tr><td colspan="6" class="dim">No bail data yet</td></tr>' : ''}
+  </table>
+
+  <h2>Long Holds on Low Bail</h2>
+  <p class="subtitle" style="margin-bottom:0.5rem;">Exact time in custody (booking to release, to the minute) for people whose bail was $${d.lowBailThreshold.toLocaleString()} or less — the longest holds here look driven more by inability to pay than by the underlying charge.</p>
+  <table>
+    <tr><th>#</th><th>Name</th><th>Bail</th><th>Time Held</th><th>Charges</th></tr>
+    ${d.longHoldsLowBail.map((e, i) => `<tr>
+      <td class="dim">${i+1}</td>
+      <td class="val">${e.name}</td>
+      <td style="color:#C3D6B8;font-weight:bold;">${$(e.bailAmt)}</td>
+      <td class="val">${formatMinutes(e.heldMins)}</td>
+      <td style="font-size:0.7rem;">${e.charges.length ? e.charges.join(', ') : '<span class="dim">—</span>'}</td>
+    </tr>`).join('')}
+    ${d.longHoldsLowBail.length === 0 ? '<tr><td colspan="5" class="dim">No qualifying releases yet</td></tr>' : ''}
   </table>
 
   <h2>Average &amp; Max Bail by Charge Type</h2>
