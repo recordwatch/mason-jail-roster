@@ -100,8 +100,27 @@ function insertEventsFromLine(rawLine) {
 // exact format formatBooked/formatReleased used to produce, so the existing
 // /api/history, /api/stats, and /api/deepstats parsing logic (which expects
 // an array of lines) can run completely unchanged against database-backed data.
-function getAllEventLines() {
-  const rows = db.prepare('SELECT * FROM events ORDER BY id ASC').all();
+//
+// Passing windowDays/maxCustodyDays restricts the result to rows from the
+// last windowDays, plus every row for anyone whose most recent event is a
+// BOOKED within the last maxCustodyDays (i.e. still presumed to be in
+// custody) — used by /api/history to avoid publishing unbounded historical
+// names. Omitting them (the default) returns the full, unfiltered table,
+// unchanged from before this option existed.
+function getAllEventLines({ windowDays, maxCustodyDays } = {}) {
+  const rows = (windowDays != null && maxCustodyDays != null)
+    ? db.prepare(`
+        SELECT e.* FROM events e
+        WHERE datetime(e.event_date) >= datetime('now', ?)
+           OR e.name IN (
+             SELECT name FROM events
+             GROUP BY name
+             HAVING MAX(id) = MAX(CASE WHEN event_type = 'BOOKED' THEN id END)
+                AND datetime(MAX(event_date)) >= datetime('now', ?)
+           )
+        ORDER BY e.id ASC
+      `).all(`-${windowDays} days`, `-${maxCustodyDays} days`)
+    : db.prepare('SELECT * FROM events ORDER BY id ASC').all();
   return rows.map(row => `${row.event_type} | ${rowToLine(row)}`);
 }
 

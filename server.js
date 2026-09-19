@@ -759,7 +759,7 @@ app.get('/api/history', (req, res) => {
   let entries = [];
 
   try {
-    const lines = getAllEventLines();
+    const lines = getAllEventLines({ windowDays: HISTORY_WINDOW_DAYS, maxCustodyDays: MAX_PLAUSIBLE_CUSTODY_DAYS });
 
     // Group by date
     const entriesByDate = {};
@@ -933,6 +933,7 @@ app.get('/api/history', (req, res) => {
       <a href="/api/status" class="nav-btn">← Washington Jail Data</a>
       <a href="/api/stats" class="nav-btn">Statistics →</a>
     </div>
+    <p class="subtitle">Showing changes from the last ${HISTORY_WINDOW_DAYS} days, plus people currently in custody.</p>
     <input type="text" class="search-input" placeholder="Search by name..." oninput="filterNames(this.value)">
     ${entriesHtml}
   </div>
