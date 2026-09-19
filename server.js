@@ -1778,15 +1778,22 @@ app.get('/api/deepstats', async (req, res) => {
     const yearStart  = new Date(now.getFullYear(), 0, 1);
 
     // ── Release type stats ────────────────────────────────────────────────────
-    const rtStats = {}; // code → { count, totalMins, totalBail, bailCount }
+    // timeCount is a separate tally from count: count is every release of this
+    // type (used for the Count/% columns) and must stay unconditional; timeCount
+    // is only the releases that actually contributed to totalMins, so avgTime
+    // divides by the right denominator instead of silently underestimating.
+    const rtStats = {}; // code → { count, timeCount, totalMins, totalBail, bailCount }
     for (const e of history) {
       const code = normalizeReleaseType(e.releaseType);
-      if (!rtStats[code]) rtStats[code] = { count: 0, totalMins: 0, totalBail: 0, bailCount: 0 };
+      if (!rtStats[code]) rtStats[code] = { count: 0, timeCount: 0, totalMins: 0, totalBail: 0, bailCount: 0 };
       rtStats[code].count++;
       const ts = (e.timeServed || '').match(/(\d+)d(\d+)h(\d+)m/);
       if (ts) {
         const m = parseInt(ts[1])*1440 + parseInt(ts[2])*60 + parseInt(ts[3]);
-        if (m > 0 && m < PLAUSIBLE_TIME_SERVED_CEILING_MINS) rtStats[code].totalMins += m;
+        if (m > 0 && m < PLAUSIBLE_TIME_SERVED_CEILING_MINS) {
+          rtStats[code].totalMins += m;
+          rtStats[code].timeCount++;
+        }
       }
       const bail = parseFloat((e.bail || '$0').replace(/[$,]/g, ''));
       if (bail > 0) { rtStats[code].totalBail += bail; rtStats[code].bailCount++; }
@@ -2016,7 +2023,7 @@ function getDeepStatsHTML(d) {
       name: RELEASE_TYPE_NAMES[code] || code,
       count: s.count,
       pct: pct(s.count, total),
-      avgTime: s.totalMins > 0 ? formatMinutes(Math.round(s.totalMins / s.count)) : '—',
+      avgTime: s.totalMins > 0 ? formatMinutes(Math.round(s.totalMins / s.timeCount)) : '—',
       avgBail: s.bailCount > 0 ? $(Math.round(s.totalBail / s.bailCount)) : '—',
     }));
 
