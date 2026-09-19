@@ -45,6 +45,12 @@ const __dirname = dirname(__filename);
 
 const HISTORY_WINDOW_DAYS = 7;
 const MAX_PLAUSIBLE_CUSTODY_DAYS = 180;
+// Ceiling for a parsed time-served duration to be treated as real rather than
+// a parsing artifact. 5 years (2,628,000 minutes) — long enough to admit
+// genuine long stays (e.g. a 621-day hold), short enough to still catch
+// garbage. One constant used at every inline ceiling check in this file, so
+// there's a single place to change instead of independently-drifting copies.
+const PLAUSIBLE_TIME_SERVED_CEILING_MINS = 2628000;
 
 const app = express();
 app.use('/fonts', express.static(path.join(__dirname, 'fonts')));
@@ -1238,7 +1244,7 @@ const avgStayDays = stayCount > 0 ? Math.round((totalStayHours / stayCount) / 24
           const tsMatch = (entry.timeServed || '').match(/(\d+)d(\d+)h(\d+)m/);
           if (tsMatch) {
             const mins = parseInt(tsMatch[1]) * 1440 + parseInt(tsMatch[2]) * 60 + parseInt(tsMatch[3]);
-            if (mins > 0 && mins < 525600) historyTimeMinutes.push(mins);
+            if (mins > 0 && mins < PLAUSIBLE_TIME_SERVED_CEILING_MINS) historyTimeMinutes.push(mins);
           }
           if (entry.releaseType) {
             const type = resolveReleaseTypeCode(entry.releaseType);
@@ -1780,7 +1786,7 @@ app.get('/api/deepstats', async (req, res) => {
       const ts = (e.timeServed || '').match(/(\d+)d(\d+)h(\d+)m/);
       if (ts) {
         const m = parseInt(ts[1])*1440 + parseInt(ts[2])*60 + parseInt(ts[3]);
-        if (m > 0 && m < 525600) rtStats[code].totalMins += m;
+        if (m > 0 && m < PLAUSIBLE_TIME_SERVED_CEILING_MINS) rtStats[code].totalMins += m;
       }
       const bail = parseFloat((e.bail || '$0').replace(/[$,]/g, ''));
       if (bail > 0) { rtStats[code].totalBail += bail; rtStats[code].bailCount++; }
@@ -1825,7 +1831,7 @@ app.get('/api/deepstats', async (req, res) => {
         const mins = ts ? parseInt(ts[1]) * 1440 + parseInt(ts[2]) * 60 + parseInt(ts[3]) : 0;
         return { ...e, heldMins: mins };
       })
-      .filter(e => e.heldMins > 0 && e.heldMins < 525600)
+      .filter(e => e.heldMins > 0 && e.heldMins < PLAUSIBLE_TIME_SERVED_CEILING_MINS)
       .sort((a, b) => b.heldMins - a.heldMins)
       .slice(0, 15);
     
@@ -1845,7 +1851,7 @@ app.get('/api/deepstats', async (req, res) => {
           bailByCharge[charge].count++;
           if (bail > bailByCharge[charge].max) bailByCharge[charge].max = bail;
         }
-        if (mins > 0 && mins < 525600) {
+        if (mins > 0 && mins < PLAUSIBLE_TIME_SERVED_CEILING_MINS) {
           if (!timeByCharge[charge]) timeByCharge[charge] = { totalMins:0, count:0, allMins:[] };
           timeByCharge[charge].totalMins += mins;
           timeByCharge[charge].count++;
@@ -1864,7 +1870,7 @@ app.get('/api/deepstats', async (req, res) => {
       const ts = (e.timeServed || '').match(/(\d+)d(\d+)h(\d+)m/);
       if (ts) {
         const m = parseInt(ts[1])*1440 + parseInt(ts[2])*60 + parseInt(ts[3]);
-        if (m > 0 && m < 525600) {
+        if (m > 0 && m < PLAUSIBLE_TIME_SERVED_CEILING_MINS) {
           allServedMins.push(m);
           if (m < 1440) under24++; else over24++;
           if (m > histMaxMins) { histMaxMins = m; histMaxEntry = e; }
