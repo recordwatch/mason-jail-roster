@@ -170,6 +170,31 @@ function getAllReleases() {
   return db.prepare('SELECT name, release_date_time as releaseDateTime, release_type as releaseType, time_served as timeServed, bail FROM releases ORDER BY id ASC').all();
 }
 
+// For every release, finds the most recent BOOKED event for that name at or
+// before the release (a correlated subquery per row, not a join) - a name
+// can have multiple booking/release cycles, so a plain join would multiply
+// rows or match the wrong cycle. bookingDate is null when no BOOKED event
+// precedes the release (e.g. a release with no corresponding booking in our
+// history), which callers must handle by excluding that row from comparison.
+function getReleasesWithBookingDate() {
+  return db.prepare(`
+    SELECT
+      r.name,
+      r.release_date_time AS releaseDateTime,
+      r.time_served AS masonTimeServed,
+      r.release_type AS releaseType,
+      (
+        SELECT MAX(e.event_date)
+        FROM events e
+        WHERE e.event_type = 'BOOKED'
+          AND e.name = r.name
+          AND e.event_date <= r.release_date_time
+      ) AS bookingDate
+    FROM releases r
+    ORDER BY r.id ASC
+  `).all();
+}
+
 // Wipe both tables. Used by the historical migration endpoint so it can be
 // re-run safely — inserts into `events` have no unique constraint (unlike
 // `releases`), so re-running an additive import would duplicate everything.
@@ -190,5 +215,6 @@ export {
   getAllEventLines,
   insertRelease,
   getAllReleases,
+  getReleasesWithBookingDate,
   clearAllData
 };

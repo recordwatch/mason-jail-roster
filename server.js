@@ -38,7 +38,7 @@ import {
 } from './config.js';
 import { requireAdminKey } from './middleware.js';
 import adminRouter from './routes/admin.js';
-import { insertEventsFromLine, getAllEventLines, getAllReleases } from './events.js';
+import { insertEventsFromLine, getAllEventLines, getAllReleases, getReleasesWithBookingDate } from './events.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
@@ -1988,8 +1988,40 @@ app.get('/api/deepstats', async (req, res) => {
       }
     } catch (e) { console.error('deepstats PDF error:', e); }
 
+    // ── Mason published Credit Served vs. our observed time in custody ────────
+    // Mason's releases.time_served is their own "current stint" figure, which
+    // understates long stays (see the ceiling-fix PR). This surfaces releases
+    // where that figure and our own booking-to-release span disagree by more
+    // than a week, computed fresh here (not read from events.time_served,
+    // which itself sometimes just falls back to Mason's raw value).
+    const DISCREPANCY_THRESHOLD_MINS = 10080; // 7 days
+    const timeDiscrepancies = [];
+    for (const row of getReleasesWithBookingDate()) {
+      if (!row.bookingDate) continue; // no matching booking found; can't compare
+      const masonMatch = (row.masonTimeServed || '').match(/(\d+)d(\d+)h(\d+)m/);
+      if (!masonMatch) continue;
+      const masonMins = parseInt(masonMatch[1]) * 1440 + parseInt(masonMatch[2]) * 60 + parseInt(masonMatch[3]);
+      const computedStr = computeTimeServed(row.bookingDate, row.releaseDateTime);
+      if (!computedStr) continue;
+      const computedMatch = computedStr.match(/(\d+)d(\d+)h(\d+)m/);
+      const computedMins = parseInt(computedMatch[1]) * 1440 + parseInt(computedMatch[2]) * 60 + parseInt(computedMatch[3]);
+      const diffMins = Math.abs(computedMins - masonMins);
+      if (diffMins > DISCREPANCY_THRESHOLD_MINS) {
+        timeDiscrepancies.push({
+          name: row.name,
+          bookingDate: row.bookingDate,
+          releaseDate: row.releaseDateTime,
+          computedDays: (computedMins / 1440).toFixed(1),
+          masonTimeServed: row.masonTimeServed,
+          releaseType: row.releaseType ? (RELEASE_TYPE_NAMES[resolveReleaseTypeCode(row.releaseType)] || row.releaseType) : '—',
+          diffMins,
+        });
+      }
+    }
+    timeDiscrepancies.sort((a, b) => b.diffMins - a.diffMins);
+
     res.send(getDeepStatsHTML({
-      history, rtStats, nameToCharges,
+      history, rtStats, nameToCharges, timeDiscrepancies,
       bailToday, bailWeek, bailMonth, bailYTD, bailCount, noBailCount,
       maxBailEntry, top10Bail, longHoldsLowBail, lowBailThreshold: LOW_BAIL_THRESHOLD,
       bailByCharge, timeByCharge, rtByCharge,
@@ -2217,6 +2249,21 @@ function getDeepStatsHTML(d) {
       <td style="font-size:0.7rem;">${e.charges.length ? e.charges.join(', ') : '<span class="dim">—</span>'}</td>
     </tr>`).join('')}
     ${d.longHoldsLowBail.length === 0 ? '<tr><td colspan="5" class="dim">No qualifying releases yet</td></tr>' : ''}
+  </table>
+
+  <h2>Mason County published Credit Served vs. observed time in custody</h2>
+  <p class="subtitle" style="margin-bottom:0.5rem;">These are two different measures — Mason's published value tracks time in the current booking stint, ours is booking date to release date — and the published value appears to understate long stays. Showing releases where they disagree by more than 7 days.</p>
+  <table>
+    <tr><th>Name</th><th>Booking Date</th><th>Release Date</th><th>Our Computed (days)</th><th>Mason's Published</th><th>Release Type</th></tr>
+    ${d.timeDiscrepancies.map(e => `<tr>
+      <td class="val">${e.name}</td>
+      <td class="dim">${formatShortDateTime(parseBookingDate(e.bookingDate)) || '—'}</td>
+      <td class="dim">${formatShortDateTime(parseBookingDate(e.releaseDate)) || '—'}</td>
+      <td class="val">${e.computedDays}</td>
+      <td class="dim">${e.masonTimeServed}</td>
+      <td><span class="chip">${e.releaseType}</span></td>
+    </tr>`).join('')}
+    ${d.timeDiscrepancies.length === 0 ? '<tr><td colspan="6" class="dim">No discrepancies over 7 days found</td></tr>' : ''}
   </table>
 
   <h2>Average &amp; Max Bail by Charge Type</h2>
