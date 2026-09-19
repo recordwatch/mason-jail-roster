@@ -157,8 +157,12 @@ function parseTimeServed(timeServedStr) {
   const [, days, hours, mins] = match;
   const totalMinutes = parseInt(days) * 1440 + parseInt(hours) * 60 + parseInt(mins);
 
-  // Sanity check: Should be positive and less than 1 year (525,600 minutes)
-  if (totalMinutes <= 0 || totalMinutes > 525600) {
+  // Sanity check: should be positive and less than 5 years (2,628,000 minutes).
+  // Matches PLAUSIBLE_TIME_SERVED_CEILING_MINS in server.js, which is where
+  // this ceiling is actually enforced live (this function has no callers as
+  // of this writing) — kept in sync so a stale, lower threshold here doesn't
+  // become a trap for whoever wires this function up later.
+  if (totalMinutes <= 0 || totalMinutes > 2628000) {
     console.warn(`Invalid time served: ${timeServedStr} = ${totalMinutes} minutes`);
     return null;
   }
