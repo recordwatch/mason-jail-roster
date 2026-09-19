@@ -43,6 +43,9 @@ import { insertEventsFromLine, getAllEventLines, getAllReleases } from './events
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
 
+const HISTORY_WINDOW_DAYS = 7;
+const MAX_PLAUSIBLE_CUSTODY_DAYS = 180;
+
 const app = express();
 app.use('/fonts', express.static(path.join(__dirname, 'fonts')));
 app.use('/api/admin', requireAdminKey);
