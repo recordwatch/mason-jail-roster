@@ -114,8 +114,9 @@ ensureStorageDir();
 
 // Changelog endpoint for frontend
 app.get('/api/changelog', (req, res) => {
+  res.setHeader('X-Robots-Tag', 'noindex, noarchive');
   try {
-    const log = getAllEventLines().join('\n');
+    const log = getAllEventLines({ windowDays: HISTORY_WINDOW_DAYS, maxCustodyDays: MAX_PLAUSIBLE_CUSTODY_DAYS }).join('\n');
     res.json({ success: true, log });
   } catch (error) {
     console.error('Changelog error:', error);
@@ -280,9 +281,12 @@ app.get('/api/status', async (req, res) => {
   res.send(html);
 });
 
-// Adding roster csv api endpoint
-app.get('/api/roster.csv', async (req, res) => {
+// Full current roster with names/charges - gated like /api/admin/* since
+// nothing in this codebase depends on it being public (verified: no
+// sibling-monitor fetch, no internal call, not linked from any page).
+app.get('/api/roster.csv', requireAdminKey, async (req, res) => {
 try {
+  res.setHeader('X-Robots-Tag', 'noindex, noarchive');
   const response = await fetch(PDF_URL);
   const arrayBuffer = await response.arrayBuffer();
   const buffer = Buffer.from(arrayBuffer);
@@ -877,6 +881,7 @@ app.get('/api/history', (req, res) => {
   gtag('config', 'G-380L7KND2L');
 </script>
   <title>Booked and Released Log - Washington Jail Data</title>
+  <meta name="robots" content="noindex, noarchive">
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -1711,7 +1716,6 @@ function getStatsHTML(stats) {
         <div style="background: #141F17; padding: 1rem; border-radius: 8px; text-align: center;">
           <div style="font-size: 1.5rem; font-weight: bold; color: #C9D3C2; font-family: 'Playfair Display', Georgia, serif;">${stats.longestCurrentMins > 0 ? formatMinutes(stats.longestCurrentMins) : 'N/A'}</div>
           <div style="color: #83937C; font-size: 0.75rem; margin-top: 0.25rem;">Longest Current Stay</div>
-          ${stats.longestInmate ? `<div style="color: #83937C; font-size: 0.65rem; margin-top: 0.2rem; font-family: 'Fake Receipt', monospace;">${stats.longestInmate.name}</div>` : ''}
         </div>
       </div>
     </div>` : ''}
@@ -2107,6 +2111,7 @@ function getDeepStatsHTML(d) {
 <html>
 <head>
   <title>Deep Stats — Washington Jail Data</title>
+  <meta name="robots" content="noindex, noarchive">
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width,initial-scale=1">
   <link rel="preconnect" href="https://fonts.googleapis.com">
