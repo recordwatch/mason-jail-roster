@@ -1855,21 +1855,14 @@ app.get('/api/deepstats', async (req, res) => {
       .slice(0, 15);
     
     // ── Per-charge correlations ───────────────────────────────────────────────
-    const bailByCharge = {}, timeByCharge = {}, rtByCharge = {};
+    const timeByCharge = {}, rtByCharge = {};
     for (const e of history) {
       const charges = nameToCharges.get(e.name) || [];
-      const bail = parseFloat((e.bail || '$0').replace(/[$,]/g, ''));
       const ts = (e.timeServed || '').match(/(\d+)d(\d+)h(\d+)m/);
       const mins = ts ? parseInt(ts[1])*1440 + parseInt(ts[2])*60 + parseInt(ts[3]) : 0;
       const type = e.releaseType ? resolveReleaseTypeCode(e.releaseType) : 'UNK';
       for (const charge of charges) {
         if (!charge) continue;
-        if (bail > 0) {
-          if (!bailByCharge[charge]) bailByCharge[charge] = { total:0, count:0, max:0 };
-          bailByCharge[charge].total += bail;
-          bailByCharge[charge].count++;
-          if (bail > bailByCharge[charge].max) bailByCharge[charge].max = bail;
-        }
         if (mins > 0 && mins < PLAUSIBLE_TIME_SERVED_CEILING_MINS) {
           if (!timeByCharge[charge]) timeByCharge[charge] = { totalMins:0, count:0, allMins:[] };
           timeByCharge[charge].totalMins += mins;
@@ -1878,6 +1871,26 @@ app.get('/api/deepstats', async (req, res) => {
         }
         if (!rtByCharge[charge]) rtByCharge[charge] = {};
         rtByCharge[charge][type] = (rtByCharge[charge][type] || 0) + 1;
+      }
+    }
+
+    // Bail is reported as a single total per release, not itemized per
+    // charge, so it can only be attributed to a charge when the release has
+    // exactly one - a multi-charge release's bail can't be split between
+    // its charges without guessing which one it applies to.
+    const bailByCharge = {};
+    for (const e of history) {
+      const charges = nameToCharges.get(e.name) || [];
+      if (charges.length !== 1) continue;
+      const charge = charges[0];
+      if (!charge) continue;
+      if (!bailByCharge[charge]) bailByCharge[charge] = { total: 0, postedCount: 0, max: 0, totalCount: 0 };
+      bailByCharge[charge].totalCount++;
+      const bail = parseFloat((e.bail || '$0').replace(/[$,]/g, ''));
+      if (bail > 0) {
+        bailByCharge[charge].total += bail;
+        bailByCharge[charge].postedCount++;
+        if (bail > bailByCharge[charge].max) bailByCharge[charge].max = bail;
       }
     }
 
@@ -2026,6 +2039,7 @@ app.get('/api/deepstats', async (req, res) => {
           releaseDate: row.releaseDateTime,
           computedDays: (computedMins / 1440).toFixed(1),
           masonTimeServed: row.masonTimeServed,
+          masonMins,
           releaseType: row.releaseType ? (RELEASE_TYPE_NAMES[resolveReleaseTypeCode(row.releaseType)] || row.releaseType) : '—',
           diffMins,
         });
@@ -2068,12 +2082,27 @@ function getDeepStatsHTML(d) {
       name: RELEASE_TYPE_NAMES[code] || code,
       count: s.count,
       pct: pct(s.count, total),
+      pctNum: total > 0 ? (s.count / total) * 100 : 0,
       avgTime: s.totalMins > 0 ? formatMinutes(Math.round(s.totalMins / s.timeCount)) : '—',
+      avgTimeMins: s.totalMins > 0 ? Math.round(s.totalMins / s.timeCount) : 0,
       avgBail: s.bailCount > 0 ? $(Math.round(s.totalBail / s.bailCount)) : '—',
+      avgBailRaw: s.bailCount > 0 ? Math.round(s.totalBail / s.bailCount) : 0,
     }));
 
+  // Bail can only be attributed to a charge for single-charge releases (bail
+  // is one total per release, not itemized per charge), so postedCount/
+  // totalCount are both scoped to that same single-charge population -
+  // totalCount is not "every release with this charge," it's "every
+  // single-charge release with this charge," matching the population avg/max
+  // are drawn from.
   const bailByChargeArr = Object.entries(d.bailByCharge)
-    .map(([charge, s]) => ({ charge, avg: Math.round(s.total/s.count), max: s.max, count: s.count }))
+    .map(([charge, s]) => ({
+      charge,
+      avg: s.postedCount > 0 ? Math.round(s.total / s.postedCount) : 0,
+      max: s.max,
+      postedCount: s.postedCount,
+      totalCount: s.totalCount,
+    }))
     .sort((a,b) => b.max - a.max).slice(0, 12);
 
   const timeByChargeArr = Object.entries(d.timeByCharge)
@@ -2206,8 +2235,16 @@ function getDeepStatsHTML(d) {
 
   <h2>Release Type Breakdown</h2>
   <table>
-    <tr><th>Code</th><th>Name</th><th>Count</th><th>%</th><th>Avg Time Served</th><th>Avg Bail (if any)</th></tr>
-    ${rtArr.map(r => `<tr>
+    <thead><tr>
+      <th class="sortable" data-sort="code" data-type="text">Code</th>
+      <th class="sortable" data-sort="name" data-type="text">Name</th>
+      <th class="sortable sorted-desc" data-sort="count" data-type="num">Count</th>
+      <th class="sortable" data-sort="pct" data-type="num">%</th>
+      <th class="sortable" data-sort="avgtime" data-type="num">Avg Time Served</th>
+      <th class="sortable" data-sort="avgbail" data-type="num">Avg Bail Posted (if any)</th>
+    </tr></thead>
+    <tbody>
+    ${rtArr.map(r => `<tr data-code="${r.code.toLowerCase()}" data-name="${r.name.toLowerCase().replace(/"/g, '&quot;')}" data-count="${r.count}" data-pct="${r.pctNum}" data-avgtime="${r.avgTimeMins}" data-avgbail="${r.avgBailRaw}">
       <td class="val">${r.code}</td>
       <td>${r.name}</td>
       <td>${r.count}</td>
@@ -2216,16 +2253,17 @@ function getDeepStatsHTML(d) {
       <td>${r.avgBail}</td>
     </tr>`).join('')}
     ${rtArr.length === 0 ? '<tr><td colspan="6" class="dim">No data yet — run /api/run first</td></tr>' : ''}
+    </tbody>
   </table>
 
-  <h2>Bail Summary</h2>
+  <h2>Bail Posted Summary</h2>
   <p class="subtitle" style="margin-bottom:0.75rem;">Data collected tarting in March 2026</p>
   <div class="cards">
     <div class="card"><div class="v">${$( d.bailToday)}</div><div class="l">Today</div></div>
     <div class="card"><div class="v">${$(d.bailWeek)}</div><div class="l">Last 7 Days</div></div>
     <div class="card"><div class="v">${$(d.bailMonth)}</div><div class="l">This Month</div></div>
     <div class="card"><div class="v">${$(d.bailYTD)}</div><div class="l">Year to Date</div></div>
-    <div class="card" style="border-left-color:#0B7C5C"><div class="v">${d.bailCount}</div><div class="l">Paid Bail</div></div>
+    <div class="card" style="border-left-color:#0B7C5C"><div class="v">${d.bailCount}</div><div class="l">Bail Posted</div></div>
     <div class="card" style="border-left-color:#7C1A1A"><div class="v">${d.noBailCount}</div><div class="l">Zero-Dollar Releases</div></div>
     <div class="card" style="border-left-color:#2A4A5C">
       <div class="v">${d.bailCount + d.noBailCount > 0 ? pct(d.bailCount, d.bailCount + d.noBailCount) : '—'}</div>
@@ -2233,15 +2271,23 @@ function getDeepStatsHTML(d) {
     </div>
     ${d.maxBailEntry ? `<div class="card" style="border-left-color:#5C3A1A">
       <div class="v" style="font-size:1.2rem;">${$(d.maxBailEntry.bailAmt || parseFloat((d.maxBailEntry.bail||'$0').replace(/[$,]/g,'')))}</div>
-      <div class="l">Most Expensive Bail Ever</div>
+      <div class="l">Most Expensive Bail Posted Ever</div>
       <div style="margin-top:0.4rem;font-size:0.7rem;color:#C9D3C2;font-family:'Fake Receipt','Courier New',monospace;">${d.maxBailEntry.name}</div>
     </div>` : ''}
   </div>
 
-  <h2>Top 10 Bail Leaderboard</h2>
+  <h2>Top 10 Bail Posted Leaderboard</h2>
   <table>
-    <tr><th>#</th><th>Name</th><th>Bail</th><th>Type</th><th>Released</th><th>Charges</th></tr>
-    ${d.top10Bail.map((e, i) => `<tr>
+    <thead><tr>
+      <th class="sortable" data-sort="rank" data-type="num">#</th>
+      <th class="sortable" data-sort="name" data-type="text">Name</th>
+      <th class="sortable sorted-desc" data-sort="bail" data-type="num">Bail Posted</th>
+      <th class="sortable" data-sort="type" data-type="text">Type</th>
+      <th class="sortable" data-sort="released" data-type="text">Released</th>
+      <th class="sortable" data-sort="charges" data-type="text">Charges</th>
+    </tr></thead>
+    <tbody>
+    ${d.top10Bail.map((e, i) => `<tr data-rank="${i+1}" data-name="${e.name.toLowerCase().replace(/"/g, '&quot;')}" data-bail="${e.bailAmt}" data-type="${(e.releaseType || '').toLowerCase()}" data-released="${e.releaseDateTime || ''}" data-charges="${e.charges.join(', ').toLowerCase().replace(/"/g, '&quot;')}">
       <td class="dim">${i+1}</td>
       <td class="val">${e.name}</td>
       <td style="color:#C3D6B8;font-weight:bold;">${$(e.bailAmt)}</td>
@@ -2250,13 +2296,21 @@ function getDeepStatsHTML(d) {
       <td style="font-size:0.7rem;">${e.charges.length ? e.charges.join(', ') : '<span class="dim">—</span>'}</td>
     </tr>`).join('')}
     ${d.top10Bail.length === 0 ? '<tr><td colspan="6" class="dim">No bail data yet</td></tr>' : ''}
+    </tbody>
   </table>
 
   <h2>Long Holds on Low Bail</h2>
-  <p class="subtitle" style="margin-bottom:0.5rem;">Exact time in custody (booking to release, to the minute) for people whose bail was $${d.lowBailThreshold.toLocaleString()} or less — the longest holds here look driven more by inability to pay than by the underlying charge.</p>
+  <p class="subtitle" style="margin-bottom:0.5rem;">Exact time in custody (booking to release, to the minute) for people whose bail posted was $${d.lowBailThreshold.toLocaleString()} or less — the longest holds here look driven more by inability to pay than by the underlying charge.</p>
   <table>
-    <tr><th>#</th><th>Name</th><th>Bail</th><th>Time Held</th><th>Charges</th></tr>
-    ${d.longHoldsLowBail.map((e, i) => `<tr>
+    <thead><tr>
+      <th class="sortable" data-sort="rank" data-type="num">#</th>
+      <th class="sortable" data-sort="name" data-type="text">Name</th>
+      <th class="sortable" data-sort="bail" data-type="num">Bail Posted</th>
+      <th class="sortable sorted-desc" data-sort="held" data-type="num">Time Held</th>
+      <th class="sortable" data-sort="charges" data-type="text">Charges</th>
+    </tr></thead>
+    <tbody>
+    ${d.longHoldsLowBail.map((e, i) => `<tr data-rank="${i+1}" data-name="${e.name.toLowerCase().replace(/"/g, '&quot;')}" data-bail="${e.bailAmt}" data-held="${e.heldMins}" data-charges="${e.charges.join(', ').toLowerCase().replace(/"/g, '&quot;')}">
       <td class="dim">${i+1}</td>
       <td class="val">${e.name}</td>
       <td style="color:#C3D6B8;font-weight:bold;">${$(e.bailAmt)}</td>
@@ -2264,13 +2318,22 @@ function getDeepStatsHTML(d) {
       <td style="font-size:0.7rem;">${e.charges.length ? e.charges.join(', ') : '<span class="dim">—</span>'}</td>
     </tr>`).join('')}
     ${d.longHoldsLowBail.length === 0 ? '<tr><td colspan="5" class="dim">No qualifying releases yet</td></tr>' : ''}
+    </tbody>
   </table>
 
   <h2>Mason County published Credit Served vs. observed time in custody</h2>
   <p class="subtitle" style="margin-bottom:0.5rem;">These are two different measures — Mason's published value tracks time in the current booking stint, ours is booking date to release date — and the published value appears to understate long stays. Showing releases where they disagree by more than 7 days.</p>
   <table>
-    <tr><th>Name</th><th>Booking Date</th><th>Release Date</th><th>Our Computed (days)</th><th>Mason's Published</th><th>Release Type</th></tr>
-    ${d.timeDiscrepancies.map(e => `<tr>
+    <thead><tr>
+      <th class="sortable" data-sort="name" data-type="text">Name</th>
+      <th class="sortable" data-sort="booked" data-type="text">Booking Date</th>
+      <th class="sortable" data-sort="released" data-type="text">Release Date</th>
+      <th class="sortable" data-sort="computed" data-type="num">Our Computed (days)</th>
+      <th class="sortable" data-sort="mason" data-type="num">Mason's Published</th>
+      <th class="sortable" data-sort="type" data-type="text">Release Type</th>
+    </tr></thead>
+    <tbody>
+    ${d.timeDiscrepancies.map(e => `<tr data-name="${e.name.toLowerCase().replace(/"/g, '&quot;')}" data-booked="${e.bookingDate || ''}" data-released="${e.releaseDate || ''}" data-computed="${e.computedDays}" data-mason="${e.masonMins}" data-type="${(e.releaseType || '').toLowerCase()}">
       <td class="val">${e.name}</td>
       <td class="dim">${formatShortDateTime(parseBookingDate(e.bookingDate)) || '—'}</td>
       <td class="dim">${formatShortDateTime(parseBookingDate(e.releaseDate)) || '—'}</td>
@@ -2279,19 +2342,28 @@ function getDeepStatsHTML(d) {
       <td><span class="chip">${e.releaseType}</span></td>
     </tr>`).join('')}
     ${d.timeDiscrepancies.length === 0 ? '<tr><td colspan="6" class="dim">No discrepancies over 7 days found</td></tr>' : ''}
+    </tbody>
   </table>
 
-  <h2>Average &amp; Max Bail by Charge Type</h2>
+  <h2>Average &amp; Max Bail Posted by Charge Type</h2>
   <table>
-    <tr><th>Charge</th><th>Avg Bail</th><th>Highest Bail</th><th>Count</th></tr>
-    ${bailByChargeArr.map(r => `<tr>
+    <thead><tr>
+      <th class="sortable" data-sort="charge" data-type="text">Charge</th>
+      <th class="sortable" data-sort="avg" data-type="num">Avg Bail Posted</th>
+      <th class="sortable sorted-desc" data-sort="max" data-type="num">Highest Bail Posted</th>
+      <th class="sortable" data-sort="posted" data-type="num">Posted / Total Releases</th>
+    </tr></thead>
+    <tbody>
+    ${bailByChargeArr.map(r => `<tr data-charge="${r.charge.toLowerCase().replace(/"/g, '&quot;')}" data-avg="${r.avg}" data-max="${r.max}" data-posted="${r.postedCount}">
       <td>${r.charge}</td>
       <td class="val">${$(r.avg)}</td>
       <td style="color:#C3D6B8;">${$(r.max)}</td>
-      <td class="dim">${r.count}</td>
+      <td class="dim">${r.postedCount} / ${r.totalCount}</td>
     </tr>`).join('')}
     ${bailByChargeArr.length === 0 ? '<tr><td colspan="4" class="dim">No data yet</td></tr>' : ''}
+    </tbody>
   </table>
+  <p class="subtitle" style="margin-top:0.5rem;">Bail is reported as a single total per release, so only single-charge releases can be attributed to a charge, and only people who posted bail appear in these figures.</p>
 
   <h2>Time Served by Charge</h2>
   <p class="subtitle" style="margin-bottom:0.5rem;">Click a column to sort — e.g. by Mean to see the longest average holds.</p>
@@ -2317,14 +2389,21 @@ function getDeepStatsHTML(d) {
 
   <h2>Release Type by Charge</h2>
   <table>
-    <tr><th>Charge</th><th>Total</th><th>Top Release Type</th><th>Full Breakdown</th></tr>
-    ${rtByChargeArr.map(r => `<tr>
+    <thead><tr>
+      <th class="sortable" data-sort="charge" data-type="text">Charge</th>
+      <th class="sortable sorted-desc" data-sort="total" data-type="num">Total</th>
+      <th class="sortable" data-sort="top" data-type="text">Top Release Type</th>
+      <th class="sortable" data-sort="breakdown" data-type="text">Full Breakdown</th>
+    </tr></thead>
+    <tbody>
+    ${rtByChargeArr.map(r => `<tr data-charge="${r.charge.toLowerCase().replace(/"/g, '&quot;')}" data-total="${r.total}" data-top="${r.top[0][0].toLowerCase()}" data-breakdown="${r.top.map(([code]) => code).join(' ').toLowerCase()}">
       <td>${r.charge}</td>
       <td class="dim">${r.total}</td>
       <td><span class="chip">${r.top[0][0]}</span> <span class="dim">${r.top[0][1]}×</span></td>
       <td style="font-size:0.7rem;">${r.top.map(([code, cnt]) => `<span class="chip">${code} ${cnt}</span>`).join(' ')}</td>
     </tr>`).join('')}
     ${rtByChargeArr.length === 0 ? '<tr><td colspan="4" class="dim">No data yet</td></tr>' : ''}
+    </tbody>
   </table>
 
   <h2>Time Served Statistics</h2>
@@ -2362,13 +2441,19 @@ function getDeepStatsHTML(d) {
 
   <h2>Frequent Flyers (Booked 2+ Times)</h2>
   <table>
-    <tr><th>Name</th><th>Bookings</th><th>Charges</th></tr>
-    ${d.frequentFlyers.map(f => `<tr>
+    <thead><tr>
+      <th class="sortable" data-sort="name" data-type="text">Name</th>
+      <th class="sortable sorted-desc" data-sort="bookings" data-type="num">Bookings</th>
+      <th class="sortable" data-sort="charges" data-type="text">Charges</th>
+    </tr></thead>
+    <tbody>
+    ${d.frequentFlyers.map(f => `<tr data-name="${f.name.toLowerCase().replace(/"/g, '&quot;')}" data-bookings="${f.count}" data-charges="${f.charges.join(', ').toLowerCase().replace(/"/g, '&quot;')}">
       <td class="val">${f.name}</td>
       <td style="color:#C3D6B8;text-align:center;">${f.count}</td>
       <td style="font-size:0.7rem;">${f.charges.length ? f.charges.join(', ') : '<span class="dim">—</span>'}</td>
     </tr>`).join('')}
     ${d.frequentFlyers.length === 0 ? '<tr><td colspan="3" class="dim">No repeat bookings yet</td></tr>' : ''}
+    </tbody>
   </table>
 
   <h2>Busiest Release Times (from 48hr PDF)</h2>
@@ -2397,19 +2482,24 @@ function getDeepStatsHTML(d) {
 
   <h2>Release Type Definitions</h2>
   <table>
-    <tr><th>Code</th><th>Meaning</th></tr>
-    <tr><td class="val">RBB</td><td>Released on Bail Bond — a bail bondsman posted a surety bond on behalf of the inmate</td></tr>
-    <tr><td class="val">RPR</td><td>Released on Personal Recognizance — released on a signed promise to appear; no money required</td></tr>
-    <tr><td class="val">ROA</td><td>Released on Own Recognizance — same as RPR; released without bail on promise to appear</td></tr>
-    <tr><td class="val">RCB</td><td>Released on Cash Bail — full bail amount paid in cash directly to the jail or court</td></tr>
-    <tr><td class="val">RCC</td><td>Released — Credit for Time Served — sentence satisfied by time already spent in custody</td></tr>
-    <tr><td class="val">RCD</td><td>Released — Court Disposition — released following a court ruling or final case disposition</td></tr>
-    <tr><td class="val">RCT</td><td>Released by Court Order — judge issued a specific order to release the inmate</td></tr>
-    <tr><td class="val">RFTA</td><td>Released — FTA / Dismissed — charges dismissed or failure-to-appear warrant resolved</td></tr>
-    <tr><td class="val">RNCM</td><td>Released — No Charges Filed — prosecutor declined to file; inmate released without charges</td></tr>
-    <tr><td class="val">RNHM</td><td>Released — No Hold — no active hold or detainer; no legal basis to continue detention</td></tr>
-    <tr><td class="val">MIS</td><td>Released — Mistaken Identity — wrong person was arrested or booked</td></tr>
-    <tr><td class="val">RTR</td><td>Released to Rehab/Treatment — transferred to a treatment or rehabilitation program</td></tr>
+    <thead><tr>
+      <th class="sortable" data-sort="code" data-type="text">Code</th>
+      <th class="sortable" data-sort="meaning" data-type="text">Meaning</th>
+    </tr></thead>
+    <tbody>
+    <tr data-code="rbb" data-meaning="released on bail bond"><td class="val">RBB</td><td>Released on Bail Bond — a bail bondsman posted a surety bond on behalf of the inmate</td></tr>
+    <tr data-code="rpr" data-meaning="released on personal recognizance"><td class="val">RPR</td><td>Released on Personal Recognizance — released on a signed promise to appear; no money required</td></tr>
+    <tr data-code="roa" data-meaning="released on own recognizance"><td class="val">ROA</td><td>Released on Own Recognizance — same as RPR; released without bail on promise to appear</td></tr>
+    <tr data-code="rcb" data-meaning="released on cash bail"><td class="val">RCB</td><td>Released on Cash Bail — full bail amount paid in cash directly to the jail or court</td></tr>
+    <tr data-code="rcc" data-meaning="released credit for time served"><td class="val">RCC</td><td>Released — Credit for Time Served — sentence satisfied by time already spent in custody</td></tr>
+    <tr data-code="rcd" data-meaning="released court disposition"><td class="val">RCD</td><td>Released — Court Disposition — released following a court ruling or final case disposition</td></tr>
+    <tr data-code="rct" data-meaning="released by court order"><td class="val">RCT</td><td>Released by Court Order — judge issued a specific order to release the inmate</td></tr>
+    <tr data-code="rfta" data-meaning="released fta dismissed"><td class="val">RFTA</td><td>Released — FTA / Dismissed — charges dismissed or failure-to-appear warrant resolved</td></tr>
+    <tr data-code="rncm" data-meaning="released no charges filed"><td class="val">RNCM</td><td>Released — No Charges Filed — prosecutor declined to file; inmate released without charges</td></tr>
+    <tr data-code="rnhm" data-meaning="released no hold"><td class="val">RNHM</td><td>Released — No Hold — no active hold or detainer; no legal basis to continue detention</td></tr>
+    <tr data-code="mis" data-meaning="released mistaken identity"><td class="val">MIS</td><td>Released — Mistaken Identity — wrong person was arrested or booked</td></tr>
+    <tr data-code="rtr" data-meaning="released to rehab treatment"><td class="val">RTR</td><td>Released to Rehab/Treatment — transferred to a treatment or rehabilitation program</td></tr>
+    </tbody>
   </table>
 
 </div>
