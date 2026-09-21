@@ -124,6 +124,11 @@ app.get('/api/changelog', (req, res) => {
   }
 });
 
+// Google Search Console site verification file
+app.get('/googlec9ac8322870b2d46.html', (req, res) => {
+  res.type('text/plain').send('google-site-verification: googlec9ac8322870b2d46.html');
+});
+
 // Redirect root to status
 app.get('/', (req, res) => {
   res.redirect('/api/status');
