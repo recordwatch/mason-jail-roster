@@ -2219,6 +2219,7 @@ function getDeepStatsHTML(d) {
   </table>
 
   <h2>Bail Summary</h2>
+  <p class="subtitle" style="margin-bottom:0.75rem;">Data collected tarting in March 2026</p>
   <div class="cards">
     <div class="card"><div class="v">${$( d.bailToday)}</div><div class="l">Today</div></div>
     <div class="card"><div class="v">${$(d.bailWeek)}</div><div class="l">Last 7 Days</div></div>
