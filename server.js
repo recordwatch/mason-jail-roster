@@ -39,6 +39,7 @@ import {
 import { requireAdminKey } from './middleware.js';
 import adminRouter from './routes/admin.js';
 import { insertEventsFromLine, getAllEventLines, getAllReleases, getReleasesWithBookingDate } from './events.js';
+import { archiveRawPdf } from './pdf-archive.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
@@ -295,6 +296,7 @@ try {
   const response = await fetch(PDF_URL);
   const arrayBuffer = await response.arrayBuffer();
   const buffer = Buffer.from(arrayBuffer);
+  await archiveRawPdf(buffer, PDF_URL, response);
   const result = await PDFParser(buffer);
   const bookings = extractBookings(result.text);
 
@@ -330,6 +332,7 @@ app.get('/api/run', async (req, res) => {
 
     const arrayBuffer = await response.arrayBuffer();
     const buffer = Buffer.from(arrayBuffer);
+    await archiveRawPdf(buffer, PDF_URL, response);
 
     const pdfPath = path.join(STORAGE_DIR, "current.pdf");
     fs.writeFileSync(pdfPath, buffer);
@@ -1978,6 +1981,7 @@ app.get('/api/deepstats', async (req, res) => {
       const pdfResp = await fetch(PDF_URL);
       if (pdfResp.ok) {
         const buf = Buffer.from(await pdfResp.arrayBuffer());
+        await archiveRawPdf(buf, PDF_URL, pdfResp);
         const parsed = await PDFParser(buf);
         for (const [, b] of extractBookings(parsed.text).entries()) {
           if (b.bookDate && b.bookDate !== 'Unknown') {

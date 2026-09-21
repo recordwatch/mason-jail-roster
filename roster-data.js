@@ -3,6 +3,7 @@ import PDFParser from 'pdf-parse';
 import { parseBookingDate, toIsoDateTime, extractLabeledDate } from './utils.js';
 import { RELEASE_STATS_URL, RELEASE_STATS_HISTORY_FILE, RELEASE_TYPE_NAMES } from './config.js';
 import { insertRelease } from './events.js';
+import { archiveRawPdf } from './pdf-archive.js';
 
 async function fetchReleaseStats() {
   try {
@@ -11,6 +12,7 @@ async function fetchReleaseStats() {
 
     const arrayBuffer = await response.arrayBuffer();
     const buffer = Buffer.from(arrayBuffer);
+    await archiveRawPdf(buffer, RELEASE_STATS_URL, response);
     const result = await PDFParser(buffer);
 
     const releaseMap = new Map();

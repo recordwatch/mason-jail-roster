@@ -8,6 +8,7 @@ import { toIsoDateTime } from '../utils.js';
 import { STORAGE_DIR, RELEASE_STATS_HISTORY_FILE, PDF_URL, RELEASE_STATS_URL } from '../config.js';
 import { insertEventsFromLine, insertRelease, clearAllData } from '../events.js';
 import db, { DB_PATH } from '../db.js';
+import { archiveRawPdf } from '../pdf-archive.js';
 
 // Auth (requireAdminKey) is applied at the app level in server.js via
 // app.use('/api/admin', ...) / app.use('/api/debug', ...) before this
@@ -145,6 +146,7 @@ router.get('/api/debug/release-pdf-raw', async (req, res) => {
     const response = await fetch(RELEASE_STATS_URL);
     const arrayBuffer = await response.arrayBuffer();
     const buffer = Buffer.from(arrayBuffer);
+    await archiveRawPdf(buffer, RELEASE_STATS_URL, response);
     const result = await PDFParser(buffer);
 
     // Get first 3000 characters of raw text
@@ -227,6 +229,7 @@ router.get('/api/debug/charges', async (req, res) => {
     const response = await fetch(PDF_URL);
     const arrayBuffer = await response.arrayBuffer();
     const buffer = Buffer.from(arrayBuffer);
+    await archiveRawPdf(buffer, PDF_URL, response);
     const result = await PDFParser(buffer);
     const text = result.text;
 
@@ -253,6 +256,7 @@ router.get('/api/debug', async (req, res) => {
     const response = await fetch(PDF_URL);
     const arrayBuffer = await response.arrayBuffer();
     const buffer = Buffer.from(arrayBuffer);
+    await archiveRawPdf(buffer, PDF_URL, response);
     const result = await PDFParser(buffer);
     const text = result.text;
 
@@ -323,6 +327,7 @@ router.get('/api/debug/charge-lines', async (req, res) => {
     const response = await fetch(PDF_URL);
     const arrayBuffer = await response.arrayBuffer();
     const buffer = Buffer.from(arrayBuffer);
+    await archiveRawPdf(buffer, PDF_URL, response);
     const result = await PDFParser(buffer);
     const text = result.text;
 
