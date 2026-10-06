@@ -27,7 +27,8 @@ import {
   parseTimeServed,
   daysBetween,
   isMidnight,
-  formatDatePST
+  formatDatePST,
+  summarizeTimeToPostByBail
 } from './utils.js';
 import {
   PORT,
@@ -2031,7 +2032,8 @@ app.get('/api/deepstats', async (req, res) => {
     // which itself sometimes just falls back to Mason's raw value).
     const DISCREPANCY_THRESHOLD_MINS = 10080; // 7 days
     const timeDiscrepancies = [];
-    for (const row of getReleasesWithBookingDate()) {
+    const releasesWithBooking = getReleasesWithBookingDate();
+    for (const row of releasesWithBooking) {
       if (!row.bookingDate) continue; // no matching booking found; can't compare
       const masonMatch = (row.masonTimeServed || '').match(/(\d+)d(\d+)h(\d+)m/);
       if (!masonMatch) continue;
@@ -2056,8 +2058,40 @@ app.get('/api/deepstats', async (req, res) => {
     }
     timeDiscrepancies.sort((a, b) => b.diffMins - a.diffMins);
 
+    // ── Time to post bail, by bail amount ─────────────────────────────────────
+    // Only releases where bail was actually posted. Uses our own booking-to-
+    // release span when a matching booking exists, since Mason's published
+    // figure understates long stays (see the table above); falls back to
+    // Mason's figure otherwise so releases booked before tracking began
+    // still count.
+    const TIME_TO_POST_BUCKETS = [
+      { label: '$1 – $500',        min: 0,     max: 500 },
+      { label: '$501 – $1,000',    min: 500,   max: 1000 },
+      { label: '$1,001 – $2,500',  min: 1000,  max: 2500 },
+      { label: '$2,501 – $5,000',  min: 2500,  max: 5000 },
+      { label: '$5,001 – $10,000', min: 5000,  max: 10000 },
+      { label: 'Over $10,000',     min: 10000, max: Infinity },
+    ];
+    const toMins = str => {
+      const m = (str || '').match(/(\d+)d(\d+)h(\d+)m/);
+      return m ? parseInt(m[1]) * 1440 + parseInt(m[2]) * 60 + parseInt(m[3]) : 0;
+    };
+    const bailPostedRows = [];
+    let timeToPostFromBooking = 0;
+    for (const row of releasesWithBooking) {
+      const bailAmt = parseFloat((row.bail || '$0').replace(/[$,]/g, ''));
+      if (!(bailAmt > 0)) continue;
+      const computedMins = row.bookingDate ? toMins(computeTimeServed(row.bookingDate, row.releaseDateTime)) : 0;
+      const heldMins = computedMins > 0 ? computedMins : toMins(row.masonTimeServed);
+      if (heldMins <= 0 || heldMins >= PLAUSIBLE_TIME_SERVED_CEILING_MINS) continue;
+      if (computedMins > 0) timeToPostFromBooking++;
+      bailPostedRows.push({ bailAmt, heldMins });
+    }
+    const timeToPostByBail = summarizeTimeToPostByBail(bailPostedRows, TIME_TO_POST_BUCKETS);
+
     res.send(getDeepStatsHTML({
       history, rtStats, nameToCharges, timeDiscrepancies,
+      timeToPostByBail, timeToPostTotal: bailPostedRows.length, timeToPostFromBooking,
       bailToday, bailWeek, bailMonth, bailYTD, bailCount, noBailCount,
       maxBailEntry, top10Bail, longHoldsLowBail, lowBailThreshold: LOW_BAIL_THRESHOLD,
       bailByCharge, timeByCharge, rtByCharge,
@@ -2307,6 +2341,30 @@ function getDeepStatsHTML(d) {
     ${d.top10Bail.length === 0 ? '<tr><td colspan="6" class="dim">No bail data yet</td></tr>' : ''}
     </tbody>
   </table>
+
+  <h2>Time to Post Bail, by Bail Amount</h2>
+  <p class="subtitle" style="margin-bottom:0.5rem;">Everyone counted here eventually posted bail, so the charge itself didn't keep them in — the wait is roughly how long it took to come up with the money. If the median climbs as bail goes up, the amount is driving the hold. People who never posted aren't in this data at all (Mason only reports bail when it's posted), so this understates the effect. ${d.timeToPostTotal.toLocaleString()} bail-posted releases; ${d.timeToPostFromBooking.toLocaleString()} timed from our observed booking, the rest from Mason's published credit served.</p>
+  <table>
+    <thead><tr>
+      <th class="sortable sorted-asc" data-sort="rank" data-type="num">Bail Range</th>
+      <th class="sortable" data-sort="count" data-type="num">Releases</th>
+      <th class="sortable" data-sort="p25" data-type="num">Fastest Quarter Out By</th>
+      <th class="sortable" data-sort="median" data-type="num">Median Time to Post</th>
+      <th class="sortable" data-sort="p75" data-type="num">Slowest Quarter Still In At</th>
+      <th class="sortable" data-sort="within24" data-type="num">Out Within 24h</th>
+    </tr></thead>
+    <tbody>
+    ${d.timeToPostByBail.map((b, i) => `<tr data-rank="${i}" data-count="${b.count}" data-p25="${b.p25Mins}" data-median="${b.medianMins}" data-p75="${b.p75Mins}" data-within24="${b.within24hPct}"${b.count < 10 ? ' title="Fewer than 10 releases - too few to read much into" style="opacity:0.55;"' : ''}>
+      <td class="val">${b.label}</td>
+      <td class="dim">${b.count.toLocaleString()}</td>
+      <td>${formatMinutes(b.p25Mins)}</td>
+      <td style="color:#C3D6B8;font-weight:bold;">${formatMinutes(b.medianMins)}</td>
+      <td>${formatMinutes(b.p75Mins)}</td>
+      <td>${b.count ? b.within24hPct + '%' : '—'}</td>
+    </tr>`).join('')}
+    </tbody>
+  </table>
+  <p class="subtitle" style="font-size:0.75rem;margin-top:0.25rem;">Faded rows have fewer than 10 releases — too few to draw conclusions from.</p>
 
   <h2>Long Holds on Low Bail</h2>
   <p class="subtitle" style="margin-bottom:0.5rem;">Exact time in custody (booking to release, to the minute) for people whose bail posted was $${d.lowBailThreshold.toLocaleString()} or less — the longest holds here look driven more by inability to pay than by the underlying charge.</p>

@@ -235,6 +235,41 @@ function formatDatePST(date) {
   }) + ' PST';
 }
 
+/**
+ * Group bail-posted releases into bail-amount ranges and summarize how long
+ * each range took to get out.
+ * @param {Array<{bailAmt: number, heldMins: number}>} rows - Bail-posted releases
+ * @param {Array<{label: string, min: number, max: number}>} buckets - Ranges; min exclusive, max inclusive
+ * @returns {Array<{label, count, p25Mins, medianMins, p75Mins, within24hPct}>}
+ *
+ * WHY: Everyone here eventually posted bail, so their charge didn't keep them
+ * in — the time before posting is roughly how long it took to find the money.
+ * If that time climbs with the bail amount, the amount itself is driving
+ * the hold. Medians/quartiles, not means, so a few extreme stays can't skew it.
+ */
+function summarizeTimeToPostByBail(rows, buckets) {
+  const pct = (sorted, p) => {
+    if (sorted.length === 0) return 0;
+    const idx = (sorted.length - 1) * p;
+    const lo = Math.floor(idx), hi = Math.ceil(idx);
+    return Math.round(sorted[lo] + (sorted[hi] - sorted[lo]) * (idx - lo));
+  };
+  return buckets.map(b => {
+    const mins = rows
+      .filter(r => r.bailAmt > b.min && r.bailAmt <= b.max && r.heldMins > 0)
+      .map(r => r.heldMins)
+      .sort((x, y) => x - y);
+    return {
+      label: b.label,
+      count: mins.length,
+      p25Mins: pct(mins, 0.25),
+      medianMins: pct(mins, 0.5),
+      p75Mins: pct(mins, 0.75),
+      within24hPct: mins.length ? Math.round((mins.filter(m => m <= 1440).length / mins.length) * 1000) / 10 : 0,
+    };
+  });
+}
+
 // Export all functions
 export {
   parseBookingDate,
@@ -245,5 +280,6 @@ export {
   parseTimeServed,
   daysBetween,
   isMidnight,
-  formatDatePST
+  formatDatePST,
+  summarizeTimeToPostByBail
 };
