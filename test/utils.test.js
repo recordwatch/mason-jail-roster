@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { summarizeTimeToPostByBail } from '../utils.js';
+import { summarizeTimeToPostByBail, normalizeName } from '../utils.js';
 
 const BUCKETS = [
   { label: 'low',  min: 0,    max: 1000 },
@@ -33,4 +33,10 @@ test('summarizeTimeToPostByBail returns zeroed buckets when empty and skips non-
   const [low, high] = summarizeTimeToPostByBail([{ bailAmt: 500, heldMins: 0 }], BUCKETS);
   assert.deepEqual(low, { label: 'low', count: 0, p25Mins: 0, medianMins: 0, p75Mins: 0, within24hPct: 0 });
   assert.equal(high.count, 0);
+});
+
+test('normalizeName trims and upper-cases so booking and release names line up', () => {
+  assert.equal(normalizeName('SOTOCASTRO, DIEGO '), 'SOTOCASTRO, DIEGO');
+  assert.equal(normalizeName('Greene, Chad A'), 'GREENE, CHAD A');
+  assert.equal(normalizeName(null), '');
 });

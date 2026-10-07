@@ -188,7 +188,7 @@ function getReleasesWithBookingDate() {
         SELECT MAX(e.event_date)
         FROM events e
         WHERE e.event_type = 'BOOKED'
-          AND e.name = r.name
+          AND upper(trim(e.name)) = upper(trim(r.name))
           AND e.event_date <= r.release_date_time
       ) AS bookingDate
     FROM releases r

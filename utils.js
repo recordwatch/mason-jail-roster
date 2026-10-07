@@ -270,6 +270,21 @@ function summarizeTimeToPostByBail(rows, buckets) {
   });
 }
 
+/**
+ * Normalize a person's name for matching across sources
+ * @param {string} name - Name as it appears in a booking or release record
+ * @returns {string} - Trimmed, upper-cased name
+ *
+ * WHY: The booking roster and the release report write the same person's
+ * name differently — the release side keeps a trailing space after a bare
+ * first name ("SOTOCASTRO, DIEGO ") and is all caps, while bookings are
+ * trimmed and sometimes mixed case ("Greene, Chad A"). Exact comparison
+ * silently fails to link them.
+ */
+function normalizeName(name) {
+  return (name || '').trim().toUpperCase();
+}
+
 // Export all functions
 export {
   parseBookingDate,
@@ -281,5 +296,6 @@ export {
   daysBetween,
   isMidnight,
   formatDatePST,
-  summarizeTimeToPostByBail
+  summarizeTimeToPostByBail,
+  normalizeName
 };

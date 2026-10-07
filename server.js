@@ -28,7 +28,8 @@ import {
   daysBetween,
   isMidnight,
   formatDatePST,
-  summarizeTimeToPostByBail
+  summarizeTimeToPostByBail,
+  normalizeName
 } from './utils.js';
 import {
   PORT,
@@ -1205,7 +1206,7 @@ const avgStayDays = stayCount > 0 ? Math.round((totalStayHours / stayCount) / 24
         const ch = line.match(/Charges:\s+(.+)/);
         if (nm && ch) {
           const charges = [...new Set(ch[1].split(',').map(c => normalizeCharge(c.trim())).filter(c => c && c !== 'None listed'))];
-          nameToCharges.set(nm[1].trim(), charges);
+          nameToCharges.set(normalizeName(nm[1]), charges);
         }
       }
     }
@@ -1238,7 +1239,7 @@ const avgStayDays = stayCount > 0 ? Math.round((totalStayHours / stayCount) / 24
             // Correlate bail with charges
             const nm = line.match(/RELEASED \| ([^|]+) \|/);
             if (nm) {
-              const charges = nameToCharges.get(nm[1].trim()) || [];
+              const charges = nameToCharges.get(normalizeName(nm[1])) || [];
               charges.forEach(charge => {
                 if (!bailByCharge[charge]) bailByCharge[charge] = { total: 0, count: 0 };
                 bailByCharge[charge].total += bail;
@@ -1780,9 +1781,11 @@ app.get('/api/deepstats', async (req, res) => {
         if (nm) {
           const name = nm[1].trim();
           bookedNamesList.push(name);
-          if (ch && !nameToCharges.has(name)) {
+          // Keyed by normalizeName so release names (all caps, sometimes a
+          // trailing space) find the charges booked under the same person.
+          if (ch && !nameToCharges.has(normalizeName(name))) {
             const charges = [...new Set(ch[1].split(',').map(c => normalizeCharge(c.trim())).filter(c => c && c !== 'None listed'))];
-            if (charges.length) nameToCharges.set(name, charges);
+            if (charges.length) nameToCharges.set(normalizeName(name), charges);
           }
           const bookDate = extractLabeledDate(line, 'Booked');
           if (bookDate) {
@@ -1839,7 +1842,7 @@ app.get('/api/deepstats', async (req, res) => {
           if (rd >= yearStart)  bailYTD   += bail;
         }
         if (bail > maxBail) { maxBail = bail; maxBailEntry = e; }
-        bailLeaderboardRaw.push({ ...e, bailAmt: bail, charges: nameToCharges.get(e.name) || [] });
+        bailLeaderboardRaw.push({ ...e, bailAmt: bail, charges: nameToCharges.get(normalizeName(e.name)) || [] });
       }
       if (normalizedType === 'BAIL') bailCount++;
       else if (normalizedType === 'PR') noBailCount++;
@@ -1867,7 +1870,7 @@ app.get('/api/deepstats', async (req, res) => {
     // ── Per-charge correlations ───────────────────────────────────────────────
     const timeByCharge = {}, rtByCharge = {};
     for (const e of history) {
-      const charges = nameToCharges.get(e.name) || [];
+      const charges = nameToCharges.get(normalizeName(e.name)) || [];
       const ts = (e.timeServed || '').match(/(\d+)d(\d+)h(\d+)m/);
       const mins = ts ? parseInt(ts[1])*1440 + parseInt(ts[2])*60 + parseInt(ts[3]) : 0;
       const type = e.releaseType ? resolveReleaseTypeCode(e.releaseType) : 'UNK';
@@ -1890,7 +1893,7 @@ app.get('/api/deepstats', async (req, res) => {
     // its charges without guessing which one it applies to.
     const bailByCharge = {};
     for (const e of history) {
-      const charges = nameToCharges.get(e.name) || [];
+      const charges = nameToCharges.get(normalizeName(e.name)) || [];
       if (charges.length !== 1) continue;
       const charge = charges[0];
       if (!charge) continue;
@@ -1932,7 +1935,7 @@ app.get('/api/deepstats', async (req, res) => {
       .filter(([, c]) => c > 1)
       .sort((a, b) => b[1] - a[1])
       .slice(0, 15)
-      .map(([name, count]) => ({ name, count, charges: nameToCharges.get(name) || [] }));
+      .map(([name, count]) => ({ name, count, charges: nameToCharges.get(normalizeName(name)) || [] }));
 
     // ── Recidivism ────────────────────────────────────────────────────────────
     const totalArrestsTracked = bookedNamesList.length;

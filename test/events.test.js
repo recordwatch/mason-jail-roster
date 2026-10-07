@@ -9,12 +9,12 @@ import path from 'node:path';
 // imports db.js) is ever imported — otherwise tests would write to the real
 // /data path.
 let tmpDir;
-let parseEventLine, splitGluedRecords, toCanonicalIso, insertEventsFromLine, getAllEventLines;
+let parseEventLine, splitGluedRecords, toCanonicalIso, insertEventsFromLine, getAllEventLines, insertEvent, insertRelease, getReleasesWithBookingDate;
 
 before(async () => {
   tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'mason-events-test-'));
   process.env.RAILWAY_VOLUME_MOUNT_PATH = tmpDir;
-  ({ parseEventLine, splitGluedRecords, toCanonicalIso, insertEventsFromLine, getAllEventLines } = await import('../events.js'));
+  ({ parseEventLine, splitGluedRecords, toCanonicalIso, insertEventsFromLine, getAllEventLines, insertEvent, insertRelease, getReleasesWithBookingDate } = await import('../events.js'));
 });
 
 after(() => {
@@ -95,4 +95,27 @@ test('insertEventsFromLine + getAllEventLines round-trips a glued corrupted line
   const lines = getAllEventLines();
   assert.ok(lines.some(l => l === 'BOOKED | COOPER, CODY F | Booked: 2026-02-10T11:14:00 | Charges: Vandalism'));
   assert.ok(lines.some(l => l === 'BOOKED | KUZIOR, SKIPPER W | Booked: 2026-02-11T01:20:00 | Charges: Traffic Offense'));
+});
+
+test('getReleasesWithBookingDate matches a booking despite a trailing space or different case in the name', () => {
+  // Real pattern: release report keeps a trailing space after a bare first
+  // name and is all caps; the booking is trimmed and sometimes mixed case.
+  insertEvent({ type: 'BOOKED', name: 'SOTOCASTRO, DIEGO', date: '2026-06-28T21:15:00', timeServed: null, bail: null, releaseType: null });
+  insertRelease({ name: 'SOTOCASTRO, DIEGO ', releaseDateTime: '2026-06-28T22:38:23', releaseType: 'RCB', timeServed: '0d1h23m', bail: '$1,000.00' });
+  insertEvent({ type: 'BOOKED', name: 'Greene, Chad A', date: '2026-06-12T21:35:00', timeServed: null, bail: null, releaseType: null });
+  insertRelease({ name: 'GREENE, CHAD A', releaseDateTime: '2026-06-15T18:24:14', releaseType: 'RBB', timeServed: '2d20h49m', bail: '$3,000.00' });
+
+  const rows = getReleasesWithBookingDate();
+  const diego = rows.find(r => r.name === 'SOTOCASTRO, DIEGO ');
+  const chad = rows.find(r => r.name === 'GREENE, CHAD A');
+  assert.equal(diego.bookingDate, '2026-06-28T21:15:00');
+  assert.equal(diego.bail, '$1,000.00');
+  assert.equal(chad.bookingDate, '2026-06-12T21:35:00');
+});
+
+test('getReleasesWithBookingDate does not match a different suffix (JR) as the same person', () => {
+  insertEvent({ type: 'BOOKED', name: 'BROWN, CASEY E JR', date: '2026-03-07T18:00:00', timeServed: null, bail: null, releaseType: null });
+  insertRelease({ name: 'BROWN, CASEY E', releaseDateTime: '2026-03-10T15:49:49', releaseType: 'JRRCB', timeServed: '2d21h4m', bail: '$1,000.00' });
+  const row = getReleasesWithBookingDate().find(r => r.name === 'BROWN, CASEY E');
+  assert.equal(row.bookingDate, null);
 });
