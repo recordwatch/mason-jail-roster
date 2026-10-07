@@ -606,7 +606,7 @@ app.get('/legislative', (req, res) => {
     <p class="subtitle">2026 Session — Post-Adjournment Summary</p>
 
     <div class="content">
-      <p class="update-date">Updated: 3/13/2026</p>
+      <p class="update-date">Updated: 3/13/2026*</p>
 
       <h2>Washington state legislature 2026 — adjourned</h2>
 
