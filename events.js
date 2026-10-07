@@ -183,6 +183,7 @@ function getReleasesWithBookingDate() {
       r.release_date_time AS releaseDateTime,
       r.time_served AS masonTimeServed,
       r.release_type AS releaseType,
+      r.bail,
       (
         SELECT MAX(e.event_date)
         FROM events e
