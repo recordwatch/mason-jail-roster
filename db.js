@@ -38,5 +38,25 @@ db.exec(`
 `);
 db.exec('CREATE INDEX IF NOT EXISTS idx_releases_date ON releases(release_date_time);');
 
+// Court and offense class per charge per booking, from the roster PDF. Kept
+// separate from events.charges (plain offense text) so it can be recorded
+// for every booking seen — live scrapes and re-parsed archived PDFs alike —
+// without touching the event log. booking_id is the roster's own Booking #.
+db.exec(`
+  CREATE TABLE IF NOT EXISTS booking_charges (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    booking_id TEXT NOT NULL,
+    name TEXT NOT NULL,
+    book_date TEXT,
+    offense TEXT NOT NULL,
+    court TEXT,
+    offense_class TEXT,
+    source TEXT NOT NULL,
+    recorded_at TEXT NOT NULL DEFAULT (datetime('now')),
+    UNIQUE(booking_id, offense, court, offense_class)
+  );
+`);
+db.exec('CREATE INDEX IF NOT EXISTS idx_booking_charges_book ON booking_charges(name, book_date);');
+
 export default db;
 export { DB_PATH };

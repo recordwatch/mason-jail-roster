@@ -6,9 +6,9 @@ import { extractBookings } from '../parser.js';
 import { fetchReleaseStats } from '../roster-data.js';
 import { toIsoDateTime } from '../utils.js';
 import { STORAGE_DIR, RELEASE_STATS_HISTORY_FILE, PDF_URL, RELEASE_STATS_URL } from '../config.js';
-import { insertEventsFromLine, insertRelease, clearAllData } from '../events.js';
+import { insertEventsFromLine, insertRelease, clearAllData, recordBookingCharges } from '../events.js';
 import db, { DB_PATH } from '../db.js';
-import { archiveRawPdf } from '../pdf-archive.js';
+import { archiveRawPdf, listArchivedPdfs, fetchArchivedPdf } from '../pdf-archive.js';
 
 // Auth (requireAdminKey) is applied at the app level in server.js via
 // app.use('/api/admin', ...) / app.use('/api/debug', ...) before this
@@ -26,6 +26,48 @@ router.get('/api/admin/download-db', (req, res) => {
     res.download(DB_PATH, 'mason.sqlite');
   } catch (e) {
     res.status(500).send('Error: ' + e.message);
+  }
+});
+
+// Recovers court + offense class for past bookings by re-parsing the roster
+// PDFs archived to the storage bucket (only bookings that appear in some
+// archived PDF can be recovered). Works through the manifest in batches —
+// ?start=N&limit=M, default 25 — so no single request runs long enough to
+// time out; call again with the returned `next` until it's null. Safe to
+// re-run: recordBookingCharges skips anything already recorded.
+router.get('/api/admin/backfill-charge-details', async (req, res) => {
+  try {
+    const archived = await listArchivedPdfs(path.basename(PDF_URL));
+    const start = Math.max(0, parseInt(req.query.start, 10) || 0);
+    const limit = Math.min(100, Math.max(1, parseInt(req.query.limit, 10) || 25));
+    const batch = archived.slice(start, start + limit);
+
+    let chargesInserted = 0, bookingsSeen = 0;
+    const errors = [];
+    for (const { key } of batch) {
+      try {
+        const parsed = await PDFParser(await fetchArchivedPdf(key));
+        const bookings = extractBookings(parsed.text);
+        bookingsSeen += bookings.size;
+        chargesInserted += recordBookingCharges(bookings, `archive:${key}`);
+      } catch (e) {
+        errors.push({ key, error: e.message });
+      }
+    }
+
+    const end = start + batch.length;
+    res.json({
+      totalArchived: archived.length,
+      processed: { start, end },
+      oldestInBatch: batch[0]?.fetchedAt ?? null,
+      newestInBatch: batch[batch.length - 1]?.fetchedAt ?? null,
+      bookingsSeen,
+      chargesInserted,
+      errors,
+      next: end < archived.length ? end : null,
+    });
+  } catch (e) {
+    res.status(500).json({ error: e.message });
   }
 });
 
