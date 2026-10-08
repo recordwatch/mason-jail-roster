@@ -140,3 +140,49 @@ test('falls back to "Unknown" name and skips a block with no Booking # match', (
   const bookings = extractBookings(text);
   assert.equal(bookings.size, 0);
 });
+
+test('chargeDetails keeps the court and offense class that charges drops', () => {
+  const text = `Booking #: 88888
+Name: LEE, SAM
+Name Number: 9999
+Book Date: 09:00:00 06/01/26
+Rel Date: No Rel Date
+StatuteOffenseCourtOffenseClass
+9A.36.041Assault, SimpleDIST GROSS MISDEMEANOR
+9A.52.025BurglarySUPR FELONY
+ResidentSUPR FELONY
+`;
+  const b = extractBookings(text).get('88888');
+  assert.deepEqual(b.chargeDetails, [
+    { offense: 'Assault, Simple', court: 'DIST', offenseClass: 'GROSS MISDEMEANOR' },
+    { offense: 'Burglary Resident', court: 'SUPR', offenseClass: 'FELONY' },
+  ]);
+});
+
+test('chargeDetails keeps one entry per court when the same offense is filed in two', () => {
+  const text = `Booking #: 55555
+Name: WILSON, ROBERT
+Name Number: 4444
+Book Date: 12:00:00 05/01/26
+Rel Date: No Rel Date
+StatuteOffenseCourtOffenseClass
+9A.36.041Assault, SimpleDIST GROSS MISDEMEANOR
+9A.36.041Assault, SimpleMUNI GROSS MISDEMEANOR
+9A.36.041Assault, SimpleDIST GROSS MISDEMEANOR
+`;
+  const b = extractBookings(text).get('55555');
+  assert.deepEqual(b.chargeDetails.map(c => c.court), ['DIST', 'MUNI']);
+});
+
+test('chargeDetails records a null offense class when nothing follows the court', () => {
+  const text = `Booking #: 99999
+Name: HOLD, DOC
+Name Number: 1
+Book Date: 09:00:00 06/01/26
+Rel Date: No Rel Date
+StatuteOffenseCourtOffenseClass
+72.09.310Escape, CommunityDOC
+`;
+  const b = extractBookings(text).get('99999');
+  assert.deepEqual(b.chargeDetails, [{ offense: 'Escape, Community', court: 'DOC', offenseClass: null }]);
+});

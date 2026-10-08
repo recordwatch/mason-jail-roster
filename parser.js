@@ -43,6 +43,10 @@ function extractBookings(rosterText) {
     }
 
     const charges = [];
+    // Same charges as above, plus the court (SUPR/DIST/MUNI/DOC) and offense
+    // class ("FELONY", "GROSS MISDEMEANOR", ...) that follow each offense on
+    // the line — the closest thing to a severity measure the roster has.
+    const chargeDetails = [];
     const lines = block.split("\n");
     let inCharges = false;
 
@@ -70,6 +74,12 @@ function extractBookings(rosterText) {
           // Remove statute code at the beginning (numbers, dots, letters in parentheses)
           let cleaned = t.replace(/^[\d.()A-Z]+(?=[A-Z][a-z])/, '');
 
+          // Capture the court type and whatever follows it (the offense
+          // class) before removing them from the offense text
+          const courtMatch = cleaned.match(/(SUPR|DIST|MUNI|DOC)(.*)$/);
+          const court = courtMatch ? courtMatch[1] : null;
+          const offenseClass = courtMatch && courtMatch[2].trim() ? courtMatch[2].trim() : null;
+
           // Remove everything from the court type onwards
           cleaned = cleaned.replace(/(SUPR|DIST|MUNI|DOC).*$/, '');
 
@@ -87,8 +97,10 @@ function extractBookings(rosterText) {
             // previous charge, not a new one.
             if (!/^\d/.test(t) && charges.length > 0) {
               charges[charges.length - 1] += ' ' + cleaned;
+              chargeDetails[chargeDetails.length - 1].offense += ' ' + cleaned;
             } else {
               charges.push(cleaned);
+              chargeDetails.push({ offense: cleaned, court, offenseClass });
             }
           }
         }
@@ -99,7 +111,8 @@ function extractBookings(rosterText) {
       name,
       bookDate,
       releaseDate,
-      charges: [...new Set(charges)]
+      charges: [...new Set(charges)],
+      chargeDetails: [...new Map(chargeDetails.map(c => [`${c.offense}|${c.court}|${c.offenseClass}`, c])).values()]
     });
   }
   return bookings;

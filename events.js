@@ -207,6 +207,36 @@ function getReleasesWithBookingDate() {
   `).all();
 }
 
+// Record court + offense class for every charge on every booking in a parsed
+// roster (extractBookings output). INSERT OR IGNORE on the table's unique key
+// makes this safe to call on every scrape and to re-run over archived PDFs:
+// a charge already recorded is skipped, so the first source to see it wins.
+// A missing court/class is stored as '' rather than NULL because SQLite
+// treats NULLs as distinct in UNIQUE constraints, so such a charge would
+// otherwise be re-inserted on every run.
+const insertBookingChargeStmt = db.prepare(`
+  INSERT OR IGNORE INTO booking_charges (booking_id, name, book_date, offense, court, offense_class, source)
+  VALUES (?, ?, ?, ?, ?, ?, ?)
+`);
+function recordBookingCharges(bookings, source) {
+  let inserted = 0;
+  db.exec('BEGIN');
+  try {
+    for (const [id, b] of bookings) {
+      const bookDate = b.bookDate && b.bookDate !== 'Unknown' ? b.bookDate : null;
+      for (const c of b.chargeDetails || []) {
+        const r = insertBookingChargeStmt.run(id, b.name, bookDate, c.offense, c.court ?? '', c.offenseClass ?? '', source);
+        inserted += r.changes;
+      }
+    }
+    db.exec('COMMIT');
+  } catch (e) {
+    db.exec('ROLLBACK');
+    throw e;
+  }
+  return inserted;
+}
+
 // Wipe both tables. Used by the historical migration endpoint so it can be
 // re-run safely — inserts into `events` have no unique constraint (unlike
 // `releases`), so re-running an additive import would duplicate everything.
@@ -228,5 +258,6 @@ export {
   insertRelease,
   getAllReleases,
   getReleasesWithBookingDate,
+  recordBookingCharges,
   clearAllData
 };

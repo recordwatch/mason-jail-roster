@@ -9,12 +9,12 @@ import path from 'node:path';
 // imports db.js) is ever imported — otherwise tests would write to the real
 // /data path.
 let tmpDir;
-let parseEventLine, splitGluedRecords, toCanonicalIso, insertEventsFromLine, getAllEventLines, insertEvent, insertRelease, getReleasesWithBookingDate;
+let parseEventLine, splitGluedRecords, toCanonicalIso, insertEventsFromLine, getAllEventLines, insertEvent, insertRelease, getReleasesWithBookingDate, recordBookingCharges;
 
 before(async () => {
   tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'mason-events-test-'));
   process.env.RAILWAY_VOLUME_MOUNT_PATH = tmpDir;
-  ({ parseEventLine, splitGluedRecords, toCanonicalIso, insertEventsFromLine, getAllEventLines, insertEvent, insertRelease, getReleasesWithBookingDate } = await import('../events.js'));
+  ({ parseEventLine, splitGluedRecords, toCanonicalIso, insertEventsFromLine, getAllEventLines, insertEvent, insertRelease, getReleasesWithBookingDate, recordBookingCharges } = await import('../events.js'));
 });
 
 after(() => {
@@ -130,4 +130,27 @@ test('getReleasesWithBookingDate gives each release the charges from the booking
   const rows = getReleasesWithBookingDate().filter(r => r.name === 'REPEAT, PERSON A');
   assert.deepEqual(rows.map(r => r.bookingCharges), ['Theft 3', 'Assault 4, Malicious Mischief']);
   assert.deepEqual(rows.map(r => r.bookingDate), ['2026-05-01T10:00:00', '2026-09-01T10:00:00']);
+});
+
+test('recordBookingCharges stores court and class per charge and is safe to re-run', async () => {
+  const { default: db } = await import('../db.js');
+  const bookings = new Map([
+    ['B1', { name: 'LEE, SAM', bookDate: '2026-06-01T09:00:00', chargeDetails: [
+      { offense: 'Assault, Simple', court: 'DIST', offenseClass: 'GROSS MISDEMEANOR' },
+      { offense: 'Escape, Community', court: 'DOC', offenseClass: null },
+    ] }],
+    ['B2', { name: 'NO, DATE', bookDate: 'Unknown', chargeDetails: [
+      { offense: 'Theft 3', court: 'DIST', offenseClass: 'GROSS MISDEMEANOR' },
+    ] }],
+  ]);
+  assert.equal(recordBookingCharges(bookings, 'archive:a.pdf'), 3);
+  // Second pass (e.g. the next live scrape, or re-running the backfill) adds
+  // nothing - including the charge with no offense class.
+  assert.equal(recordBookingCharges(bookings, 'live'), 0);
+
+  const rows = db.prepare('SELECT booking_id, book_date, offense, court, offense_class, source FROM booking_charges ORDER BY id').all();
+  assert.equal(rows.length, 3);
+  assert.deepEqual({ ...rows[0] }, { booking_id: 'B1', book_date: '2026-06-01T09:00:00', offense: 'Assault, Simple', court: 'DIST', offense_class: 'GROSS MISDEMEANOR', source: 'archive:a.pdf' });
+  assert.equal(rows[1].offense_class, '');
+  assert.equal(rows[2].book_date, null);
 });

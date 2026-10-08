@@ -111,4 +111,31 @@ async function archiveRawPdf(buffer, sourceUrl, response) {
   }
 }
 
-export { archiveRawPdf };
+/**
+ * Lists archived copies of one source file (e.g. "incustdy.pdf") from the
+ * manifest, oldest first. Throws when no bucket is connected, since callers
+ * reading the archive (unlike archiveRawPdf) can't do anything useful
+ * without one.
+ * @param {string} filename
+ * @returns {Promise<Array<{key: string, fetchedAt: string}>>}
+ */
+async function listArchivedPdfs(filename) {
+  if (!s3) throw new Error('No storage bucket connected');
+  const entries = [];
+  for (const line of await readManifestLines()) {
+    try {
+      const entry = JSON.parse(line);
+      if (entry.file === filename && entry.key) entries.push({ key: entry.key, fetchedAt: entry.fetchedAt });
+    } catch (_) { /* skip a malformed manifest line */ }
+  }
+  return entries;
+}
+
+/** Fetches one archived PDF's raw bytes by its bucket key. */
+async function fetchArchivedPdf(key) {
+  if (!s3) throw new Error('No storage bucket connected');
+  const res = await s3.send(new GetObjectCommand({ Bucket: BUCKET, Key: key }));
+  return streamToBuffer(res.Body);
+}
+
+export { archiveRawPdf, listArchivedPdfs, fetchArchivedPdf };

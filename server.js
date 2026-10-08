@@ -40,7 +40,7 @@ import {
 } from './config.js';
 import { requireAdminKey } from './middleware.js';
 import adminRouter from './routes/admin.js';
-import { insertEventsFromLine, getAllEventLines, getAllReleases, getReleasesWithBookingDate } from './events.js';
+import { insertEventsFromLine, getAllEventLines, getAllReleases, getReleasesWithBookingDate, recordBookingCharges } from './events.js';
 import { archiveRawPdf } from './pdf-archive.js';
 
 const __filename = fileURLToPath(import.meta.url);
@@ -341,6 +341,14 @@ app.get('/api/run', async (req, res) => {
 
     const result = await PDFParser(buffer);
     const text = result.text;
+
+    // Court + offense class for everyone currently on the roster. Side
+    // channel only — must never break the scrape it's attached to.
+    try {
+      recordBookingCharges(extractBookings(text), 'live');
+    } catch (e) {
+      console.error('booking_charges record error (non-fatal):', e.message);
+    }
 
     const textPath = path.join(STORAGE_DIR, "current_text.txt");
     fs.writeFileSync(textPath, text);
