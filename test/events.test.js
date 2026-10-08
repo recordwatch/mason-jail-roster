@@ -119,3 +119,15 @@ test('getReleasesWithBookingDate does not match a different suffix (JR) as the s
   const row = getReleasesWithBookingDate().find(r => r.name === 'BROWN, CASEY E');
   assert.equal(row.bookingDate, null);
 });
+
+test('getReleasesWithBookingDate gives each release the charges from the booking it ended, not the first one', () => {
+  const ev = (date, charges) => insertEvent({ type: 'BOOKED', name: 'REPEAT, PERSON A', date, charges, timeServed: null, bail: null, releaseType: null });
+  ev('2026-05-01T10:00:00', 'Theft 3');
+  insertRelease({ name: 'REPEAT, PERSON A', releaseDateTime: '2026-05-02T10:00:00', releaseType: 'RCB', timeServed: '1d0h0m', bail: '$500.00' });
+  ev('2026-09-01T10:00:00', 'Assault 4, Malicious Mischief');
+  insertRelease({ name: 'REPEAT, PERSON A', releaseDateTime: '2026-09-03T10:00:00', releaseType: 'RBB', timeServed: '2d0h0m', bail: '$5,000.00' });
+
+  const rows = getReleasesWithBookingDate().filter(r => r.name === 'REPEAT, PERSON A');
+  assert.deepEqual(rows.map(r => r.bookingCharges), ['Theft 3', 'Assault 4, Malicious Mischief']);
+  assert.deepEqual(rows.map(r => r.bookingDate), ['2026-05-01T10:00:00', '2026-09-01T10:00:00']);
+});

@@ -176,6 +176,8 @@ function getAllReleases() {
 // rows or match the wrong cycle. bookingDate is null when no BOOKED event
 // precedes the release (e.g. a release with no corresponding booking in our
 // history), which callers must handle by excluding that row from comparison.
+// bookingCharges is that same booking's charge text, so a repeat arrestee's
+// release carries the charges from the stint it ended, not their first one.
 function getReleasesWithBookingDate() {
   return db.prepare(`
     SELECT
@@ -190,7 +192,16 @@ function getReleasesWithBookingDate() {
         WHERE e.event_type = 'BOOKED'
           AND upper(trim(e.name)) = upper(trim(r.name))
           AND e.event_date <= r.release_date_time
-      ) AS bookingDate
+      ) AS bookingDate,
+      (
+        SELECT e.charges
+        FROM events e
+        WHERE e.event_type = 'BOOKED'
+          AND upper(trim(e.name)) = upper(trim(r.name))
+          AND e.event_date <= r.release_date_time
+        ORDER BY e.event_date DESC, e.id DESC
+        LIMIT 1
+      ) AS bookingCharges
     FROM releases r
     ORDER BY r.id ASC
   `).all();
