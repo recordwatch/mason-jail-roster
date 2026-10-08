@@ -12,3 +12,10 @@ node_modules/
 *.txt
 *.pdf
 *_backup.json
+# Downloaded DB copies hold real names; never commit them
+*.sqlite
+*.sqlite-wal
+*.sqlite-shm
+
+# Git's own scratch file, picked up by `git add .` in some setups
+FETCH_HEAD
