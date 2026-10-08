@@ -1770,7 +1770,20 @@ app.get('/api/deepstats', async (req, res) => {
     // Load history
     const history = getAllReleases();
 
-    // Build name→charges and booked-names list from change log
+    const parseChargeList = text => [...new Set((text || '').split(',').map(c => normalizeCharge(c.trim())).filter(c => c && c !== 'None listed'))];
+
+    // Charges per release come from the booking that release ended (the
+    // most recent booking at or before it), not from the person's first-ever
+    // booking — otherwise every later release of a repeat arrestee is
+    // credited with their old charges. Keyed by (name, release time), the
+    // releases table's own unique key.
+    const releasesWithBooking = getReleasesWithBookingDate();
+    const releaseKey = e => `${e.name}|${e.releaseDateTime}`;
+    const chargesByRelease = new Map(releasesWithBooking.map(r => [releaseKey(r), parseChargeList(r.bookingCharges)]));
+    const releaseCharges = e => chargesByRelease.get(releaseKey(e)) || [];
+
+    // Build name→charges (first booking per person, used for person-level
+    // stats) and booked-names list from change log
     const nameToCharges = new Map();
     const bookedNamesList = [];
     const bookDatesByName = new Map();
@@ -1784,7 +1797,7 @@ app.get('/api/deepstats', async (req, res) => {
           // Keyed by normalizeName so release names (all caps, sometimes a
           // trailing space) find the charges booked under the same person.
           if (ch && !nameToCharges.has(normalizeName(name))) {
-            const charges = [...new Set(ch[1].split(',').map(c => normalizeCharge(c.trim())).filter(c => c && c !== 'None listed'))];
+            const charges = parseChargeList(ch[1]);
             if (charges.length) nameToCharges.set(normalizeName(name), charges);
           }
           const bookDate = extractLabeledDate(line, 'Booked');
@@ -1842,7 +1855,7 @@ app.get('/api/deepstats', async (req, res) => {
           if (rd >= yearStart)  bailYTD   += bail;
         }
         if (bail > maxBail) { maxBail = bail; maxBailEntry = e; }
-        bailLeaderboardRaw.push({ ...e, bailAmt: bail, charges: nameToCharges.get(normalizeName(e.name)) || [] });
+        bailLeaderboardRaw.push({ ...e, bailAmt: bail, charges: releaseCharges(e) });
       }
       if (normalizedType === 'BAIL') bailCount++;
       else if (normalizedType === 'PR') noBailCount++;
@@ -1870,7 +1883,7 @@ app.get('/api/deepstats', async (req, res) => {
     // ── Per-charge correlations ───────────────────────────────────────────────
     const timeByCharge = {}, rtByCharge = {};
     for (const e of history) {
-      const charges = nameToCharges.get(normalizeName(e.name)) || [];
+      const charges = releaseCharges(e);
       const ts = (e.timeServed || '').match(/(\d+)d(\d+)h(\d+)m/);
       const mins = ts ? parseInt(ts[1])*1440 + parseInt(ts[2])*60 + parseInt(ts[3]) : 0;
       const type = e.releaseType ? resolveReleaseTypeCode(e.releaseType) : 'UNK';
@@ -1893,7 +1906,7 @@ app.get('/api/deepstats', async (req, res) => {
     // its charges without guessing which one it applies to.
     const bailByCharge = {};
     for (const e of history) {
-      const charges = nameToCharges.get(normalizeName(e.name)) || [];
+      const charges = releaseCharges(e);
       if (charges.length !== 1) continue;
       const charge = charges[0];
       if (!charge) continue;
@@ -2035,7 +2048,6 @@ app.get('/api/deepstats', async (req, res) => {
     // which itself sometimes just falls back to Mason's raw value).
     const DISCREPANCY_THRESHOLD_MINS = 10080; // 7 days
     const timeDiscrepancies = [];
-    const releasesWithBooking = getReleasesWithBookingDate();
     for (const row of releasesWithBooking) {
       if (!row.bookingDate) continue; // no matching booking found; can't compare
       const masonMatch = (row.masonTimeServed || '').match(/(\d+)d(\d+)h(\d+)m/);
