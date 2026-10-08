@@ -16,7 +16,7 @@ A public records monitor for Washington State jail rosters, available at [wajail
 | `/` | Directory — links to county monitors |
 | `/api/history` | Mason County Jail Roster Monitor (bookings & releases log) |
 | `/api/stats` | Statistics dashboard |
-| `/api/deepstats` | Extended stats and release type breakdown |
+| `/api/deepstats?key=…` | Extended stats and release type breakdown (admin key required — lists individuals) |
 
 ## Data Source
 
