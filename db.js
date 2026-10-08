@@ -38,7 +38,8 @@ db.exec(`
 `);
 db.exec('CREATE INDEX IF NOT EXISTS idx_releases_date ON releases(release_date_time);');
 
-// Court and offense class per charge per booking, from the roster PDF. Kept
+// Court and charge class code (offense_class, e.g. "ASSIGM") per charge per
+// booking, from the roster PDF. Kept
 // separate from events.charges (plain offense text) so it can be recorded
 // for every booking seen — live scrapes and re-parsed archived PDFs alike —
 // without touching the event log. booking_id is the roster's own Booking #.

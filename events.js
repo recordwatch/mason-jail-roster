@@ -237,6 +237,12 @@ function recordBookingCharges(bookings, source) {
   return inserted;
 }
 
+// Every recorded charge class code with the booking it belongs to, for
+// joining to releases by (normalized name, booking date).
+function getBookingChargeCodes() {
+  return db.prepare("SELECT name, book_date AS bookDate, offense_class AS code FROM booking_charges WHERE book_date IS NOT NULL AND offense_class != ''").all();
+}
+
 // Wipe both tables. Used by the historical migration endpoint so it can be
 // re-run safely — inserts into `events` have no unique constraint (unlike
 // `releases`), so re-running an additive import would duplicate everything.
@@ -259,5 +265,6 @@ export {
   getAllReleases,
   getReleasesWithBookingDate,
   recordBookingCharges,
+  getBookingChargeCodes,
   clearAllData
 };

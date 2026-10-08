@@ -247,13 +247,16 @@ function formatDatePST(date) {
  * If that time climbs with the bail amount, the amount itself is driving
  * the hold. Medians/quartiles, not means, so a few extreme stays can't skew it.
  */
+// Linear-interpolated percentile of an already-sorted array (0 if empty).
+function percentile(sorted, p) {
+  if (sorted.length === 0) return 0;
+  const idx = (sorted.length - 1) * p;
+  const lo = Math.floor(idx), hi = Math.ceil(idx);
+  return Math.round(sorted[lo] + (sorted[hi] - sorted[lo]) * (idx - lo));
+}
+
 function summarizeTimeToPostByBail(rows, buckets) {
-  const pct = (sorted, p) => {
-    if (sorted.length === 0) return 0;
-    const idx = (sorted.length - 1) * p;
-    const lo = Math.floor(idx), hi = Math.ceil(idx);
-    return Math.round(sorted[lo] + (sorted[hi] - sorted[lo]) * (idx - lo));
-  };
+  const pct = percentile;
   return buckets.map(b => {
     const mins = rows
       .filter(r => r.bailAmt > b.min && r.bailAmt <= b.max && r.heldMins > 0)
@@ -285,6 +288,60 @@ function normalizeName(name) {
   return (name || '').trim().toUpperCase();
 }
 
+// Charge class codes from the roster end in a two-letter class: FA/FB/FC
+// (class A/B/C felony), GM (gross misdemeanor), MM (misdemeanor), BW (bench
+// warrant). Confirmed against every code in the recovered data; the rare
+// endings seen besides these (MP, UI, F+) aren't identified, so they're not
+// ranked. Most serious first.
+const SEVERITY_ORDER = [
+  ['FA', 'Felony A'],
+  ['FB', 'Felony B'],
+  ['FC', 'Felony C'],
+  ['GM', 'Gross misdemeanor'],
+  ['MM', 'Misdemeanor'],
+];
+const SEVERITY_LABELS = [...SEVERITY_ORDER.map(([, label]) => label), 'Warrant only', 'Other'];
+
+/**
+ * The most serious charge class on one booking.
+ * @param {string[]} codes - charge class codes for the booking, e.g. ["ASSIGM", "FTABW"]
+ * @returns {string|null} - a SEVERITY_LABELS entry, or null when there are no codes
+ *
+ * WHY: a booking held only on bench warrants (e.g. failure to appear) is a
+ * different situation from one held on a new charge — there may be no bail
+ * to pay at all — so it's "Warrant only" rather than ranked with the
+ * charges. A new charge plus a warrant ranks by the new charge.
+ */
+function severityFromCodes(codes) {
+  const list = (codes || []).filter(Boolean);
+  if (list.length === 0) return null;
+  for (const [ending, label] of SEVERITY_ORDER) {
+    if (list.some(c => c.endsWith(ending))) return label;
+  }
+  if (list.some(c => c.endsWith('BW'))) return 'Warrant only';
+  return 'Other';
+}
+
+/**
+ * Count and median time held per (row, col) cell.
+ * @param {Array<{row: string, col: string, heldMins: number}>} items
+ * @returns {Array<{row: string, cells: Array<{col: string, count: number, medianMins: number}>, total: {count: number, medianMins: number}}>}
+ */
+function summarizeHoldsByGroup(items, rowKeys, colKeys) {
+  const cell = mins => {
+    const sorted = [...mins].sort((a, b) => a - b);
+    return { count: sorted.length, medianMins: percentile(sorted, 0.5) };
+  };
+  return rowKeys.map(row => {
+    const inRow = items.filter(i => i.row === row && i.heldMins > 0);
+    return {
+      row,
+      cells: colKeys.map(col => ({ col, ...cell(inRow.filter(i => i.col === col).map(i => i.heldMins)) })),
+      total: cell(inRow.map(i => i.heldMins)),
+    };
+  });
+}
+
 // Export all functions
 export {
   parseBookingDate,
@@ -297,5 +354,8 @@ export {
   isMidnight,
   formatDatePST,
   summarizeTimeToPostByBail,
-  normalizeName
+  normalizeName,
+  severityFromCodes,
+  summarizeHoldsByGroup,
+  SEVERITY_LABELS
 };
