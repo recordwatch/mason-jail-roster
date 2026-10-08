@@ -143,7 +143,7 @@ router.get('/api/admin/migrate-to-sqlite', (req, res) => {
       <p style="color:#6A8A96;">Safe to re-run — wipes and rebuilds both tables from the text files every time.</p>
       <a href="/api/history" style="color:#4B8FA8;">→ View History</a> &nbsp;
       <a href="/api/stats" style="color:#4B8FA8;">→ View Stats</a> &nbsp;
-      <a href="/api/deepstats" style="color:#4B8FA8;">→ View Deep Stats</a>
+      <a href="/api/deepstats?key=${encodeURIComponent(req.query.key)}" style="color:#4B8FA8;">→ View Deep Stats</a>
     </body></html>`);
   } catch (e) {
     res.status(500).send('Error: ' + e.message);

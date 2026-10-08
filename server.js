@@ -62,6 +62,9 @@ const app = express();
 app.use('/fonts', express.static(path.join(__dirname, 'fonts')));
 app.use('/api/admin', requireAdminKey);
 app.use('/api/debug', requireAdminKey);
+// Deepstats lists individual people by name (bail, holds, frequent flyers),
+// so it's admin-only rather than public like /api/history and /api/stats.
+app.use('/api/deepstats', requireAdminKey);
 app.use(adminRouter);
 
 // ── Sibling monitors (wajaildata.org hub totals) ──────────────────────────
