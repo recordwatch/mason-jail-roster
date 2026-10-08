@@ -9,6 +9,7 @@ import { STORAGE_DIR, RELEASE_STATS_HISTORY_FILE, PDF_URL, RELEASE_STATS_URL } f
 import { insertEventsFromLine, insertRelease, clearAllData, recordBookingCharges } from '../events.js';
 import db, { DB_PATH } from '../db.js';
 import { archiveRawPdf, listArchivedPdfs, fetchArchivedPdf } from '../pdf-archive.js';
+import { listWaybackSnapshots, fetchWaybackSnapshot } from '../wayback.js';
 
 // Auth (requireAdminKey) is applied at the app level in server.js via
 // app.use('/api/admin', ...) / app.use('/api/debug', ...) before this
@@ -29,42 +30,64 @@ router.get('/api/admin/download-db', (req, res) => {
   }
 });
 
+// Shared by the charge-detail backfills: parses one batch of roster PDFs
+// (items[start, start+limit), default 25, max 100) and records their charge
+// details. Batched so no single request runs long enough to time out; the
+// caller follows `next` until it's null. Safe to re-run: recordBookingCharges
+// skips anything already recorded. A PDF that fails is reported in `errors`
+// without stopping the batch.
+async function backfillChargeBatch(req, items, fetchBytes, sourceFor) {
+  const start = Math.max(0, parseInt(req.query.start, 10) || 0);
+  const limit = Math.min(100, Math.max(1, parseInt(req.query.limit, 10) || 25));
+  const batch = items.slice(start, start + limit);
+
+  let chargesInserted = 0, bookingsSeen = 0;
+  const errors = [];
+  for (const item of batch) {
+    try {
+      const parsed = await PDFParser(await fetchBytes(item));
+      const bookings = extractBookings(parsed.text);
+      bookingsSeen += bookings.size;
+      chargesInserted += recordBookingCharges(bookings, sourceFor(item));
+    } catch (e) {
+      errors.push({ item: sourceFor(item), error: e.message });
+    }
+  }
+  const end = start + batch.length;
+  return { batch, processed: { start, end }, bookingsSeen, chargesInserted, errors, next: end < items.length ? end : null };
+}
+
 // Recovers court + offense class for past bookings by re-parsing the roster
 // PDFs archived to the storage bucket (only bookings that appear in some
-// archived PDF can be recovered). Works through the manifest in batches —
-// ?start=N&limit=M, default 25 — so no single request runs long enough to
-// time out; call again with the returned `next` until it's null. Safe to
-// re-run: recordBookingCharges skips anything already recorded.
+// archived PDF can be recovered).
 router.get('/api/admin/backfill-charge-details', async (req, res) => {
   try {
     const archived = await listArchivedPdfs(path.basename(PDF_URL));
-    const start = Math.max(0, parseInt(req.query.start, 10) || 0);
-    const limit = Math.min(100, Math.max(1, parseInt(req.query.limit, 10) || 25));
-    const batch = archived.slice(start, start + limit);
-
-    let chargesInserted = 0, bookingsSeen = 0;
-    const errors = [];
-    for (const { key } of batch) {
-      try {
-        const parsed = await PDFParser(await fetchArchivedPdf(key));
-        const bookings = extractBookings(parsed.text);
-        bookingsSeen += bookings.size;
-        chargesInserted += recordBookingCharges(bookings, `archive:${key}`);
-      } catch (e) {
-        errors.push({ key, error: e.message });
-      }
-    }
-
-    const end = start + batch.length;
+    const { batch, ...result } = await backfillChargeBatch(req, archived, a => fetchArchivedPdf(a.key), a => `archive:${a.key}`);
     res.json({
       totalArchived: archived.length,
-      processed: { start, end },
       oldestInBatch: batch[0]?.fetchedAt ?? null,
       newestInBatch: batch[batch.length - 1]?.fetchedAt ?? null,
-      bookingsSeen,
-      chargesInserted,
-      errors,
-      next: end < archived.length ? end : null,
+      ...result,
+    });
+  } catch (e) {
+    res.status(500).json({ error: e.message });
+  }
+});
+
+// Same, from Internet Archive (Wayback Machine) snapshots of the roster PDF -
+// the only surviving copies from before this app archived its own. Coverage
+// is whatever the Wayback Machine happened to capture, so gaps between
+// snapshots can't be filled.
+router.get('/api/admin/backfill-charge-details-wayback', async (req, res) => {
+  try {
+    const snapshots = await listWaybackSnapshots(PDF_URL);
+    const { batch, ...result } = await backfillChargeBatch(req, snapshots, ts => fetchWaybackSnapshot(PDF_URL, ts), ts => `wayback:${ts}`);
+    res.json({
+      totalSnapshots: snapshots.length,
+      oldestInBatch: batch[0] ?? null,
+      newestInBatch: batch[batch.length - 1] ?? null,
+      ...result,
     });
   } catch (e) {
     res.status(500).json({ error: e.message });
