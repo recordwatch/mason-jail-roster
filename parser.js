@@ -43,9 +43,13 @@ function extractBookings(rosterText) {
     }
 
     const charges = [];
-    // Same charges as above, plus the court (SUPR/DIST/MUNI/DOC) and offense
-    // class ("FELONY", "GROSS MISDEMEANOR", ...) that follow each offense on
-    // the line — the closest thing to a severity measure the roster has.
+    // Same charges as above, plus the court (SUPR/DIST/MUNI/DOC) and the
+    // charge code that follow each offense on the line. In real roster PDFs
+    // the code is an offense abbreviation plus a two-letter class, e.g.
+    // "ASSIGM" (gross misdemeanor) or "BURUFB" (class B felony) — see
+    // severityFromCodes in utils.js. It's the closest thing to a severity
+    // measure the roster has. (Some test fixtures use spelled-out classes;
+    // the parser doesn't care which.)
     const chargeDetails = [];
     const lines = block.split("\n");
     let inCharges = false;

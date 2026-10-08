@@ -29,7 +29,10 @@ import {
   isMidnight,
   formatDatePST,
   summarizeTimeToPostByBail,
-  normalizeName
+  normalizeName,
+  severityFromCodes,
+  summarizeHoldsByGroup,
+  SEVERITY_LABELS
 } from './utils.js';
 import {
   PORT,
@@ -40,7 +43,7 @@ import {
 } from './config.js';
 import { requireAdminKey } from './middleware.js';
 import adminRouter from './routes/admin.js';
-import { insertEventsFromLine, getAllEventLines, getAllReleases, getReleasesWithBookingDate, recordBookingCharges } from './events.js';
+import { insertEventsFromLine, getAllEventLines, getAllReleases, getReleasesWithBookingDate, recordBookingCharges, getBookingChargeCodes } from './events.js';
 import { archiveRawPdf } from './pdf-archive.js';
 
 const __filename = fileURLToPath(import.meta.url);
@@ -2112,9 +2115,41 @@ app.get('/api/deepstats', async (req, res) => {
     }
     const timeToPostByBail = summarizeTimeToPostByBail(bailPostedRows, TIME_TO_POST_BUCKETS);
 
+    // ── Time held by most serious charge × how they got out ──────────────────
+    // Only releases whose booking has charge class codes (booking_charges),
+    // which reach back only as far as archived/Wayback roster PDFs do. Same
+    // time-held rule as above (our booking-to-release span, else Mason's).
+    const HOLD_OUTCOMES = ['Released without paying', 'Posted bail', 'Time served / disposition', 'Other'];
+    const outcomeOf = row => {
+      const bail = parseFloat((row.bail || '$0').replace(/[$,]/g, ''));
+      const type = normalizeReleaseType(row.releaseType);
+      if (bail > 0 || type === 'BAIL') return 'Posted bail';
+      if (type === 'PR') return 'Released without paying';
+      if (type === 'RCC' || type === 'RCD') return 'Time served / disposition';
+      return 'Other';
+    };
+    const codesByBooking = new Map();
+    for (const c of getBookingChargeCodes()) {
+      const k = `${normalizeName(c.name)}|${c.bookDate}`;
+      if (!codesByBooking.has(k)) codesByBooking.set(k, []);
+      codesByBooking.get(k).push(c.code);
+    }
+    const holdItems = [];
+    for (const row of releasesWithBooking) {
+      if (!row.bookingDate) continue;
+      const severity = severityFromCodes(codesByBooking.get(`${normalizeName(row.name)}|${row.bookingDate}`));
+      if (!severity) continue;
+      const computedMins = toMins(computeTimeServed(row.bookingDate, row.releaseDateTime));
+      const heldMins = computedMins > 0 ? computedMins : toMins(row.masonTimeServed);
+      if (heldMins <= 0 || heldMins >= PLAUSIBLE_TIME_SERVED_CEILING_MINS) continue;
+      holdItems.push({ row: severity, col: outcomeOf(row), heldMins });
+    }
+    const holdsBySeverity = summarizeHoldsByGroup(holdItems, SEVERITY_LABELS, HOLD_OUTCOMES);
+
     res.send(getDeepStatsHTML({
       history, rtStats, nameToCharges, timeDiscrepancies,
       timeToPostByBail, timeToPostTotal: bailPostedRows.length, timeToPostFromBooking,
+      holdsBySeverity, holdOutcomes: HOLD_OUTCOMES, holdsWithClass: holdItems.length, totalReleases: releasesWithBooking.length,
       bailToday, bailWeek, bailMonth, bailYTD, bailCount, noBailCount,
       maxBailEntry, top10Bail, longHoldsLowBail, lowBailThreshold: LOW_BAIL_THRESHOLD,
       bailByCharge, timeByCharge, rtByCharge,
@@ -2388,6 +2423,24 @@ function getDeepStatsHTML(d) {
     </tbody>
   </table>
   <p class="subtitle" style="font-size:0.75rem;margin-top:0.25rem;">Faded rows have fewer than 10 releases — too few to draw conclusions from.</p>
+
+  <h2>Time Held by Most Serious Charge</h2>
+  <p class="subtitle" style="margin-bottom:0.5rem;">Median time from booking to release, by the most serious charge class on the booking and how the person got out. Comparing across a row holds the charge roughly constant: a long "Time served / disposition" median next to a short "Released without paying" one is time spent in jail on charges of that same class. "Warrant only" means every charge was a bench warrant (e.g. failure to appear), where there may have been no bail to pay. Charge class comes from roster PDFs only as far back as they were archived, so this covers ${d.holdsWithClass.toLocaleString()} of ${d.totalReleases.toLocaleString()} releases and grows with every booking from here on. Each cell shows the median and, in parentheses, how many releases it's based on; faded cells have fewer than 10.</p>
+  <table>
+    <thead><tr>
+      <th>Most serious charge</th>
+      ${d.holdOutcomes.map(o => `<th>${o}</th>`).join('')}
+      <th>All</th>
+    </tr></thead>
+    <tbody>
+    ${d.holdsBySeverity.map(r => `<tr${r.total.count === 0 ? ' style="opacity:0.55;"' : ''}>
+      <td class="val">${r.row}</td>
+      ${[...r.cells, r.total].map(c => c.count === 0
+        ? '<td class="dim">—</td>'
+        : `<td${c.count < 10 ? ' style="opacity:0.55;" title="Fewer than 10 releases - too few to read much into"' : ''}>${formatMinutes(c.medianMins)} <span class="dim">(${c.count})</span></td>`).join('')}
+    </tr>`).join('')}
+    </tbody>
+  </table>
 
   <h2>Long Holds on Low Bail</h2>
   <p class="subtitle" style="margin-bottom:0.5rem;">Exact time in custody (booking to release, to the minute) for people whose bail posted was $${d.lowBailThreshold.toLocaleString()} or less — the longest holds here look driven more by inability to pay than by the underlying charge.</p>
