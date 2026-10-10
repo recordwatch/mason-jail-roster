@@ -19,3 +19,4 @@ node_modules/
 
 # Git's own scratch file, picked up by `git add .` in some setups
 FETCH_HEAD
+jail roster audit.md
