@@ -260,7 +260,9 @@ app.get('/api/status', async (req, res) => {
       <a href="https://recordwatch.github.io/king-county/" target="_blank" rel="noopener noreferrer" class="nav-btn">Visit King County Jail Monitor</a>
       <a href="https://recordwatch.github.io/jefferson-jail-roster/" target="_blank" rel="noopener noreferrer" class="nav-btn">Visit Jefferson County Jail Monitor</a>
       <a href="https://recordwatch.github.io/Pacific-county-monitor/" target="_blank" rel="noopener noreferrer" class="nav-btn">Visit Pacific County Jail Monitor</a>
+      <a href="https://recordwatch.github.io/Cowlitz-county-monitor/" target="_blank" rel="noopener noreferrer" class="nav-btn">Visit Cowlitz County Jail Monitor</a>
       <a href="https://recordwatch.github.io/wahkiakum-county-monitor/" target="_blank" rel="noopener noreferrer" class="nav-btn">Visit Wahkiakum County Jail Monitor</a>
+      <a href="https://recordwatch.github.io/Lewis-county-monitor/" target="_blank" rel="noopener noreferrer" class="nav-btn">Visit Lewis County Jail Monitor</a>
     </div>
     <details class="status">
       <summary>
