@@ -7,6 +7,7 @@ import { fileURLToPath } from 'url';
 import { dirname } from 'path';
 import PDFParser from 'pdf-parse';
 import { extractBookings } from './parser.js';
+import { renderHubMap, HUB_MAP_CSS } from './hub-map.js';
 import {
   fetchReleaseStats,
   computeTimeServed,
@@ -238,6 +239,7 @@ app.get('/api/status', async (req, res) => {
     .footer { margin-top: 0.75rem; }
     a { color: #A9BE9C; text-decoration: none; }
     @media (max-width: 600px) { h1 { font-size: 1.75rem; } .stats-bar { gap: 1rem; } .page-header { flex-direction: column; align-items: flex-start; gap: 0.2rem; } }
+${HUB_MAP_CSS}
   </style>
 </head>
 <body>
@@ -249,25 +251,7 @@ app.get('/api/status', async (req, res) => {
         <div class="stats-bar-label">Last Updated</div>
       </div>
     </div>
-    <div class="nav-section">
-      <a href="/api/history" class="nav-btn">Mason County Jail Roster Monitor</a>
-      <a href="https://recordwatch.github.io/ksco-scraper/" target="_blank" rel="noopener noreferrer" class="nav-btn">Visit Kitsap County Jail Monitor</a>
-      <a href="https://recordwatch.github.io/pierce-jail-roster/" target="_blank" rel="noopener noreferrer" class="nav-btn">Visit Pierce County Jail Monitor</a>
-      <a href="https://recordwatch.github.io/thurston-jail-roster/" target="_blank" rel="noopener noreferrer" class="nav-btn">Visit Thurston County Jail Monitor</a>
-      <a href="https://recordwatch.github.io/whatcom-jail-monitor/" target="_blank" rel="noopener noreferrer" class="nav-btn">Visit Whatcom County Jail Monitor</a>
-      <a href="https://recordwatch.github.io/grays-harbor-jail-monitor/" target="_blank" rel="noopener noreferrer" class="nav-btn">Visit Grays Harbor County Jail Monitor</a>
-      <a href="https://recordwatch.github.io/clallam-jail-monitor/" target="_blank" rel="noopener noreferrer" class="nav-btn">Visit Clallam County Jail Monitor</a>
-      <a href="https://recordwatch.github.io/king-county/" target="_blank" rel="noopener noreferrer" class="nav-btn">Visit King County Jail Monitor</a>
-      <a href="https://recordwatch.github.io/jefferson-jail-roster/" target="_blank" rel="noopener noreferrer" class="nav-btn">Visit Jefferson County Jail Monitor</a>
-      <a href="https://recordwatch.github.io/Pacific-county-monitor/" target="_blank" rel="noopener noreferrer" class="nav-btn">Visit Pacific County Jail Monitor</a>
-      <a href="https://recordwatch.github.io/cowlitz-county-monitor/" target="_blank" rel="noopener noreferrer" class="nav-btn">Visit Cowlitz County Jail Monitor</a>
-      <a href="https://recordwatch.github.io/wahkiakum-county-monitor/" target="_blank" rel="noopener noreferrer" class="nav-btn">Visit Wahkiakum County Jail Monitor</a>
-       <a href="https://recordwatch.github.io/lewis-county-monitor/" target="_blank" rel="noopener noreferrer" class="nav-btn">Visit Lewis County Jail Monitor</a>
-      <a href="https://recordwatch.github.io/clark-county-monitor/" target="_blank" rel="noopener noreferrer" class="nav-btn">Visit Clark County Jail Monitor</a>
-      <a href="https://recordwatch.github.io/skagit-county-monitor/" target="_blank" rel="noopener noreferrer" class="nav-btn">Visit Skagit County Jail Monitor</a>
-      <a href="https://recordwatch.github.io/kittitas-county-monitor/" target="_blank" rel="noopener noreferrer" class="nav-btn">Visit Kittitas County Jail Monitor</a>
-      <a href="https://recordwatch.github.io/nisqually-jail-monitor/" target="_blank" rel="noopener noreferrer" class="nav-btn">Visit Nisqually Jail Monitor</a>
-    </div>
+    ${renderHubMap()}
     <details class="status">
       <summary>
         <div class="status-dot"></div>
