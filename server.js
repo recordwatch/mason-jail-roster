@@ -262,8 +262,7 @@ app.get('/api/status', async (req, res) => {
       <a href="https://recordwatch.github.io/Pacific-county-monitor/" target="_blank" rel="noopener noreferrer" class="nav-btn">Visit Pacific County Jail Monitor</a>
       <a href="https://recordwatch.github.io/cowlitz-county-monitor/" target="_blank" rel="noopener noreferrer" class="nav-btn">Visit Cowlitz County Jail Monitor</a>
       <a href="https://recordwatch.github.io/wahkiakum-county-monitor/" target="_blank" rel="noopener noreferrer" class="nav-btn">Visit Wahkiakum County Jail Monitor</a>
-      <a href="https://recordwatch.github.io/lewis-county-monitor/" target="_blank" rel="noopener noreferrer" class="nav-btn">Visit Lewis County Jail Monitor</a>
-      <a href="https://recordwatch.github.io/lewis-county-monitor/" target="_blank" rel="noopener noreferrer" class="nav-btn">Visit Lewis County Jail Monitor</a>
+       <a href="https://recordwatch.github.io/lewis-county-monitor/" target="_blank" rel="noopener noreferrer" class="nav-btn">Visit Lewis County Jail Monitor</a>
       <a href="https://recordwatch.github.io/clark-county-monitor/" target="_blank" rel="noopener noreferrer" class="nav-btn">Visit Clark County Jail Monitor</a>
       <a href="https://recordwatch.github.io/skagit-county-monitor/" target="_blank" rel="noopener noreferrer" class="nav-btn">Visit Skagit County Jail Monitor</a>
     </div>
