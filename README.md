@@ -13,7 +13,7 @@ A public records monitor for Washington State jail rosters, available at [wajail
 
 | Route | Description |
 |---|---|
-| `/` | Directory — links to county monitors |
+| `/` | Directory — clickable Washington county map plus a list of every monitor |
 | `/api/history` | Mason County Jail Roster Monitor (bookings & releases log) |
 | `/api/stats` | Statistics dashboard |
 | `/api/deepstats?key=…` | Extended stats and release type breakdown (admin key required — lists individuals) |
@@ -25,8 +25,18 @@ Mason County Sheriff's Office — public records PDF updated every 48 hours:
 
 ## Related Monitors
 
-- [Kitsap County Jail Monitor](https://recordwatch.github.io/ksco-scraper/)
-- [Pierce County Jail Monitor](https://recordwatch.github.io/pierce-jail-roster/)
+Every monitor the hub links to is listed in `HUB_MONITORS` in `hub-map.js`.
+
+### Adding a monitor to the hub map
+
+1. Add one line to `HUB_MONITORS` in `hub-map.js`: the county name exactly as
+   it appears in `wa-counties.json` (e.g. `'Grays Harbor'`), a label, and the
+   monitor's URL. A non-county jail (like Nisqually) needs a marker instead.
+2. Run `npm test` — it fails if the county name doesn't match a map shape.
+
+The map shapes in `wa-counties.json` were generated once from the Census-
+derived [`us-atlas`](https://github.com/topojson/us-atlas) package
+(`counties-10m`), projected for Washington; they don't need regenerating.
 
 ## Stack
 
