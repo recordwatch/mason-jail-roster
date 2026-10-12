@@ -19,12 +19,17 @@ export const SIBLING_MONITORS = [
   { name: 'whatcom',      base: 'https://recordwatch.github.io/whatcom-jail-monitor/data' },
   { name: 'clallam',      base: 'https://recordwatch.github.io/clallam-jail-monitor/data' },
   { name: 'grays-harbor', base: 'https://recordwatch.github.io/grays-harbor-jail-monitor/data' },
-  { name: 'king',         base: 'https://recordwatch.github.io/king-county-monitor/data' },
-  { name: 'pierce',       base: 'https://recordwatch.github.io/pierce-jail-roster/data' },
-  { name: 'thurston',     base: 'https://recordwatch.github.io/thurston-jail-roster/data' },
-  { name: 'whatcom',      base: 'https://recordwatch.github.io/whatcom-jail-monitor/data' },
-  { name: 'clallam',      base: 'https://recordwatch.github.io/clallam-jail-monitor/data' },
-  { name: 'grays-harbor', base: 'https://recordwatch.github.io/grays-harbor-jail-monitor/data' },
+  { name: 'king',         base: 'https://recordwatch.github.io/king-county/data' },
+  { name: 'wahkiakum',    base: 'https://recordwatch.github.io/wahkiakum-jail-monitor/data' },
+  { name: 'clark',        base: 'https://recordwatch.github.io/clark-jail-monitor/data' },
+  { name: 'lewis',        base: 'https://recordwatch.github.io/lewis-jail-monitor/data' },
+  { name: 'pacific',      base: 'https://recordwatch.github.io/pacific-jail-monitor/data' },
+  { name: 'kittitas',     base: 'https://recordwatch.github.io/kittitas-jail-monitor/data' },
+  { name: 'jefferson',    base: 'https://recordwatch.github.io/jefferson-jail-monitor/data' },
+  { name: 'skagit',       base: 'https://recordwatch.github.io/skagit-jail-monitor/data' },
+  { name: 'nisqually',    base: 'https://recordwatch.github.io/nisqually-jail-monitor/data' },
+  { name: 'cowlitz',      base: 'https://recordwatch.github.io/cowlitz-jail-monitor/data' },
+  { name: 'skagit',       base: 'https://recordwatch.github.io/skagit-jail-monitor/data' },
 ];
 
 export const RELEASE_TYPE_NAMES = {
