@@ -47,6 +47,6 @@ export const RELEASE_TYPE_NAMES = {
   // Mason County glossary.
   IAB:   'Released to Bureau of Indian Affairs / Tribal Custody',
   IEA:   'Involuntary Emergency Admission (Mental Health Hold)',
-  TRT:   'Released to Tactical Response Team (SWAT) Custody',
+  TRT:   'Released to Treatment',
   MOBS:  'Released to Mobile Operations/Service Unit Custody',
 };
