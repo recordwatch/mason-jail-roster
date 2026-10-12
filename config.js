@@ -19,6 +19,12 @@ export const SIBLING_MONITORS = [
   { name: 'whatcom',      base: 'https://recordwatch.github.io/whatcom-jail-monitor/data' },
   { name: 'clallam',      base: 'https://recordwatch.github.io/clallam-jail-monitor/data' },
   { name: 'grays-harbor', base: 'https://recordwatch.github.io/grays-harbor-jail-monitor/data' },
+  { name: 'king',         base: 'https://recordwatch.github.io/king-county-monitor/data' },
+  { name: 'pierce',       base: 'https://recordwatch.github.io/pierce-jail-roster/data' },
+  { name: 'thurston',     base: 'https://recordwatch.github.io/thurston-jail-roster/data' },
+  { name: 'whatcom',      base: 'https://recordwatch.github.io/whatcom-jail-monitor/data' },
+  { name: 'clallam',      base: 'https://recordwatch.github.io/clallam-jail-monitor/data' },
+  { name: 'grays-harbor', base: 'https://recordwatch.github.io/grays-harbor-jail-monitor/data' },
 ];
 
 export const RELEASE_TYPE_NAMES = {
@@ -41,7 +47,6 @@ export const RELEASE_TYPE_NAMES = {
   JRRCB: 'Jail Release Record — Cash Bail',
   SRRPR: 'Sheriff Release Record — Personal Recognizance',
   EHM:   'Electronic Home Monitoring',
-',
   // The four below are the site operator's own identification of these
   // low-frequency codes, not independently verified against an official
   // Mason County glossary.
