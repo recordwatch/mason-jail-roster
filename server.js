@@ -965,6 +965,18 @@ app.get('/api/history', (req, res) => {
     .search-input:focus { border-color: #A9BE9C; }
     a { color: #A9BE9C; text-decoration: none; }
     @media (max-width: 600px) { .page-header { flex-direction: column; align-items: flex-start; gap: 0.2rem; } h1 { font-size: 1.75rem; } .container { padding: 0 1rem 3rem; } }
+    /* On phones the one-line row (name, held, time, badges) is wider than the
+       screen and the card's overflow:hidden clips the badge. Stack it instead:
+       name + chevron, then "Held: ...", then time with the badges on the right. */
+    @media (max-width: 600px) {
+      details.inmate-row > summary { flex-wrap: wrap; row-gap: 0.3rem; }
+      .inmate-name { order: 0; flex: 1 1 calc(100% - 1.5rem); }
+      .chevron { order: 1; }
+      .inmate-held { order: 2; flex-basis: 100%; }
+      .inmate-time { order: 3; }
+      .status-badge { order: 4; }
+      .inmate-time + .status-badge, .inmate-held + .status-badge, .inmate-name + .status-badge { margin-left: auto; }
+    }
   </style>
 </head>
 <body>
