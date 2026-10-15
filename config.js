@@ -62,12 +62,10 @@ export const RELEASE_TYPE_NAMES = {
   JRRCB: 'Jail Release Record — Cash Bail',
   SRRPR: 'Sheriff Release Record — Personal Recognizance',
   EHM:   'Electronic Home Monitoring',
-  DMHP:  'Designated Mental Health Professional (Involuntary Treatment Act Hold)',
   // The four below are the site operator's own identification of these
   // low-frequency codes, not independently verified against an official
   // Mason County glossary.
-  IAB:   'Released to Bureau of Indian Affairs / Tribal Custody',
+  IAB:   'Released to Indian Affairs Bureau',
   IEA:   'Involuntary Emergency Admission (Mental Health Hold)',
-  TRT:   'Released to Tactical Response Team (SWAT) Custody',
-  MOBS:  'Released to Mobile Operations/Service Unit Custody',
+  TRT:   'Released to Treatment',
 };
