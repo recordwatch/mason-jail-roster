@@ -31,6 +31,9 @@ export const HUB_MONITORS = [
   { county: 'Clark',        label: 'Clark County',        url: 'https://recordwatch.github.io/clark-county-monitor/' },
   { county: 'Skagit',       label: 'Skagit County',       url: 'https://recordwatch.github.io/skagit-county-monitor/' },
   { county: 'Kittitas',     label: 'Kittitas County',     url: 'https://recordwatch.github.io/kittitas-county-monitor/' },
+  { county: 'Ferry',        label: 'Ferry County',        url: 'https://www.ferry-county.com/law_and_justice/sheriff/jail/inmate_roster.php#outer-387' },
+  { county: 'Stevens',      label: 'Stevens County',      url: 'https://stevenscountywa.municipalone.com/20972/Inmate-Roster' },
+  { county: 'Lincoln',      label: 'Lincoln County',      url: 'https://omsweb.public-safety-cloud.com/jtclientweb/jailtracker/index/Lincoln_County_WA' },
   { county: null,           label: 'Nisqually Tribe',     url: 'https://recordwatch.github.io/nisqually-jail-monitor/', marker: 'nisqually' }
 ];
 
