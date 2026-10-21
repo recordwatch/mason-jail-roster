@@ -34,11 +34,32 @@ export const HUB_MONITORS = [
   { county: 'Ferry',        label: 'Ferry County',        url: 'https://www.ferry-county.com/law_and_justice/sheriff/jail/inmate_roster.php#outer-387' },
   { county: 'Stevens',      label: 'Stevens County',      url: 'https://stevenscountywa.municipalone.com/20972/Inmate-Roster' },
   { county: 'Lincoln',      label: 'Lincoln County',      url: 'https://omsweb.public-safety-cloud.com/jtclientweb/jailtracker/index/Lincoln_County_WA' },
+  { county: 'Benton',       label: 'Benton County',       url: 'https://www.bentoncountywa.gov/departments/administration/corrections/daily_jail_roster.php' },
+  { county: 'Chelan',       label: 'Chelan County',       url: 'https://www.co.chelan.wa.us/regional-jail/inmate-list' },
+  { county: 'Franklin',     label: 'Franklin County',     url: 'https://inmateroster.bipintc.org/NewWorld.InmateInquiry/WA0110000' },
+  { county: 'Grant',        label: 'Grant County',        url: 'https://www.grantcountywa.gov/1538/Jail-Inmate-Roster' },
+  { county: 'Island',       label: 'Island County',       url: 'https://islandcountywa.gov/1174/Jail-Roster' },
+  { county: 'Okanogan',     label: 'Okanogan County',     url: 'https://www.okanogancounty.gov/291/Booking-Inmate-Log' },
+  { county: 'Skamania',     label: 'Skamania County',     url: 'https://www.skamaniacounty.gov/Home/Components/ServiceDirectory/ServiceDirectory/100/' },
+  { county: 'Snohomish',    label: 'Snohomish County',    url: 'https://snohomishcountywa.gov/3474/Jail-Register-Bail-Information' },
+  { county: 'Spokane',      label: 'Spokane County',      url: 'https://cp.spokanecounty.org/detentionservices/inmateroster.aspx' },
+  { county: 'Walla Walla',  label: 'Walla Walla County',  url: 'https://portal.ci.walla-walla.wa.us:9843/NewWorld.InmateInquiry/wallawalla?Page=1' },
+  { county: 'Whitman',      label: 'Whitman County',      url: 'https://www.whitmancountyjail.org/' },
+  { county: 'Yakima',       label: 'Yakima County',       url: 'https://www.yakimacounty.us/2240/Inmate-Lookup' },
   { county: null,           label: 'Nisqually Tribe',     url: 'https://recordwatch.github.io/nisqually-jail-monitor/', marker: 'nisqually' }
 ];
 
 // Counties we checked that have no online roster to monitor.
-const NO_ONLINE_ROSTER = { Klickitat: 'No online roster — posted in the jail lobby' };
+const NO_ONLINE_ROSTER = {
+  Klickitat:      'No online roster — posted in the jail lobby',
+  'Pend Oreille': 'No online roster',
+  Asotin:         'No online roster',
+  Adams:          'Roster only in the Sheriff\'s mobile app',
+  Columbia:       'Jail closed 2023 — inmates held in Walla Walla',
+  Douglas:        'No jail — inmates held in Chelan and Okanogan',
+  Garfield:       'Jail closed',
+  'San Juan':     'Holding facility only — longer stays go to SCORE'
+};
 
 const escapeHtml = s => String(s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 
@@ -79,7 +100,7 @@ export function renderHubMap() {
     if (!m) {
       const note = NO_ONLINE_ROSTER[c.name] || 'Not monitored';
       // tabindex -1: Chrome makes titled SVG shapes focusable, which would
-      // put 23 dead stops in the keyboard tab order before the real links.
+      // put a dead stop for every unmonitored county in the keyboard tab order before the real links.
       return `<path class="county" tabindex="-1" d="${c.d}" data-name="${escapeHtml(c.name)} County" data-note="${escapeHtml(note)}"><title>${escapeHtml(c.name)} County — ${escapeHtml(note)}</title></path>`;
     }
     return `<a ${linkAttrs(m)} aria-label="${escapeHtml(m.label)} jail monitor" data-name="${escapeHtml(m.label)}"><path class="county" d="${c.d}"><title>${escapeHtml(m.label)} — open monitor</title></path></a>`;
