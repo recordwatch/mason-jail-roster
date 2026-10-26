@@ -18,7 +18,7 @@ A public records monitor for Washington State jail rosters, available at [wajail
 | `/api/stats` | Statistics dashboard |
 | `/api/deepstats?key=…` | Extended stats and release type breakdown (admin key required — lists individuals) |
 | `/contact` | Contact form (linked from the hub footer) |
-| `/api/admin/contact-messages?key=…` | Every contact submission, newest first; `emailFailed` marks ones that didn't email |
+| `/api/admin/contact-messages?key=…` | Every contact submission as a readable page, newest first, flagging any that didn't email (`&format=json` for raw data) |
 
 ## Data Source
 

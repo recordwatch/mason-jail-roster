@@ -95,10 +95,46 @@ export function renderContactPage({ error = '', sent = false, values = {} } = {}
     <p class="alt">Or email <a href="mailto:${escapeHtml(CONTACT_TO)}">${escapeHtml(CONTACT_TO)}</a> directly.</p>
     <a class="back" href="/api/status">← Back to Washington Jail Data</a>`;
 
+  return renderShell({
+    title: 'Contact',
+    intro: 'Questions, corrections, or a jail roster we should be monitoring? Send a note.',
+    body,
+  });
+}
+
+const formatReceived = iso => new Date(iso).toLocaleString('en-US', {
+  timeZone: 'America/Los_Angeles', dateStyle: 'medium', timeStyle: 'short',
+});
+
+// Admin backup view of contact_messages.jsonl, newest first. Email to Proton
+// is the main channel; this is for checking what came in when one fails.
+export function renderContactMessages(messages) {
+  const failed = messages.filter(m => m.emailFailed).length;
+  const cards = messages.map(m => `
+    <div class="msg${m.emailFailed ? ' failed' : ''}">
+      <div class="msg-head">
+        <span class="who">${m.name ? escapeHtml(m.name) : '<span class="anon">No name given</span>'}</span>
+        <span class="when">${escapeHtml(formatReceived(m.receivedAt))}</span>
+      </div>
+      <div class="from">${m.email
+        ? `<a href="mailto:${escapeHtml(m.email)}">${escapeHtml(m.email)}</a> · <a href="mailto:${escapeHtml(m.email)}?subject=${encodeURIComponent('Re: your message to wajaildata.org')}">Reply</a>`
+        : '<span class="anon">No email — can’t reply</span>'}</div>
+      ${m.emailFailed ? `<div class="fail-note">Email to Proton failed — this copy is the only one. (${escapeHtml(m.emailFailed)})</div>` : ''}
+      <div class="text">${escapeHtml(m.message)}</div>
+    </div>`).join('');
+
+  const summary = messages.length === 0
+    ? 'No messages yet.'
+    : `${messages.length} message${messages.length === 1 ? '' : 's'}, newest first${failed ? ` · <span class="fail-count">${failed} didn’t email</span>` : ' · all emailed to Proton'}.`;
+
+  return renderShell({ title: 'Contact Messages', intro: summary, body: cards, wide: true });
+}
+
+function renderShell({ title, intro, body, wide = false }) {
   return `<!DOCTYPE html>
 <html>
 <head>
-  <title>Contact — Washington Jail Data</title>
+  <title>${title} — Washington Jail Data</title>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -107,7 +143,7 @@ export function renderContactPage({ error = '', sent = false, values = {} } = {}
   <style>
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
     body { font-family: 'Inter', Arial, sans-serif; font-size: 9pt; background: #121A15; color: #C9D3C2; min-height: 100vh; display: flex; justify-content: center; padding: 2rem 1rem; }
-    .wrapper { width: 100%; max-width: 520px; }
+    .wrapper { width: 100%; max-width: ${wide ? 720 : 520}px; }
     .county-label { font-size: 0.7rem; font-weight: 600; letter-spacing: 2px; text-transform: uppercase; color: #A9BE9C; margin-bottom: 0.5rem; }
     h1 { font-family: 'Playfair Display', Georgia, serif; font-size: 2.5rem; font-weight: 700; color: #E7EBDF; letter-spacing: -1px; line-height: 1.1; margin-bottom: 0.5rem; }
     .intro { color: #83937C; margin-bottom: 1rem; line-height: 1.5; }
@@ -126,14 +162,24 @@ export function renderContactPage({ error = '', sent = false, values = {} } = {}
     .alt { margin-top: 0.75rem; color: #83937C; }
     a { color: #A9BE9C; text-decoration: none; }
     .back { display: inline-block; margin-top: 1rem; font-size: 0.75rem; }
+    .msg { background: #1B2A20; border: 1px solid #2E4433; border-radius: 6px; padding: 1rem 1.25rem; margin-bottom: 0.75rem; }
+    .msg.failed { border-color: #6B3434; }
+    .msg-head { display: flex; justify-content: space-between; align-items: baseline; gap: 1rem; flex-wrap: wrap; }
+    .who { font-size: 10.5pt; font-weight: 600; color: #E7EBDF; }
+    .when { color: #83937C; white-space: nowrap; }
+    .from { margin-top: 0.2rem; }
+    .anon { color: #83937C; font-style: italic; font-weight: 400; }
+    .fail-note { margin-top: 0.6rem; padding: 0.45rem 0.7rem; border-radius: 4px; background: #2A1B1B; color: #F0C9C9; }
+    .fail-count { color: #F0C9C9; }
+    .text { margin-top: 0.75rem; padding-top: 0.75rem; border-top: 1px solid #2E4433; font-size: 10pt; line-height: 1.55; color: #E7EBDF; white-space: pre-wrap; overflow-wrap: anywhere; }
     @media (max-width: 600px) { h1 { font-size: 1.75rem; } }
   </style>
 </head>
 <body>
   <div class="wrapper">
     <div class="county-label">Washington Jail Data</div>
-    <h1>Contact</h1>
-    <p class="intro">Questions, corrections, or a jail roster we should be monitoring? Send a note.</p>
+    <h1>${title}</h1>
+    <p class="intro">${intro}</p>
     ${body}
   </div>
 </body>
@@ -189,10 +235,12 @@ export function createContactRouter({
   router.get('/api/admin/contact-messages', (req, res) => {
     const lines = readContactLog(logFile);
     const failures = new Map(lines.filter(e => e.emailFailed).map(e => [e.receivedAt, e.emailFailed]));
-    res.json(lines
+    const messages = lines
       .filter(e => e.message)
       .map(e => failures.has(e.receivedAt) ? { ...e, emailFailed: failures.get(e.receivedAt) } : e)
-      .reverse());
+      .reverse();
+    if (req.query.format === 'json') return res.json(messages);
+    res.send(renderContactMessages(messages));
   });
 
   return router;
