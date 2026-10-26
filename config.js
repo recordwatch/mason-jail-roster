@@ -40,6 +40,9 @@ export const SIBLING_MONITORS = [
 // Hub-map monitors deliberately left out of the totals, with the reason.
 export const HUB_TOTALS_EXCLUDED = {
   'https://recordwatch.github.io/king-county/': 'matches WA DOC records; publishes no in-custody count',
+  'https://www.ferry-county.com/law_and_justice/sheriff/jail/inmate_roster.php#outer-387': 'official county roster page, not a monitor; publishes no status.json',
+  'https://stevenscountywa.municipalone.com/20972/Inmate-Roster': 'official county roster page, not a monitor; publishes no status.json',
+  'https://omsweb.public-safety-cloud.com/jtclientweb/jailtracker/index/Lincoln_County_WA': 'official JailTracker page, not a monitor; publishes no status.json',
 };
 
 export const RELEASE_TYPE_NAMES = {
