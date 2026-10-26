@@ -85,3 +85,14 @@ export const RELEASE_TYPE_NAMES = {
   IEA:   'Involuntary Emergency Admission (Mental Health Hold)',
   TRT:   'Released to Treatment',
 };
+
+// Contact form (/contact). Every submission is appended to CONTACT_LOG_FILE
+// first, then emailed via Resend — so a missing key or a Resend outage never
+// loses a message. Proton has no SMTP for @proton.me addresses, so Proton is
+// only the destination. onboarding@resend.dev can only deliver to the Resend
+// account owner's address, which works as long as that's CONTACT_TO; switch
+// CONTACT_FROM to an @wajaildata.org sender once the domain is verified.
+export const RESEND_API_KEY = process.env.RESEND_API_KEY;
+export const CONTACT_TO = process.env.CONTACT_TO || 'wajaildata@proton.me';
+export const CONTACT_FROM = process.env.CONTACT_FROM || 'WA Jail Data <onboarding@resend.dev>';
+export const CONTACT_LOG_FILE = path.join(STORAGE_DIR, 'contact_messages.jsonl');

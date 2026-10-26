@@ -12,6 +12,8 @@ node_modules/
 *.txt
 *.pdf
 *_backup.json
+# Contact form submissions hold visitors' messages and emails
+contact_messages.jsonl
 # Downloaded DB copies hold real names; never commit them
 *.sqlite
 *.sqlite-wal
