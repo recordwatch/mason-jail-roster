@@ -40,9 +40,22 @@ export const SIBLING_MONITORS = [
 // Hub-map monitors deliberately left out of the totals, with the reason.
 export const HUB_TOTALS_EXCLUDED = {
   'https://recordwatch.github.io/king-county/': 'matches WA DOC records; publishes no in-custody count',
-  'https://www.ferry-county.com/law_and_justice/sheriff/jail/inmate_roster.php#outer-387': 'official county roster page, not a monitor; publishes no status.json',
-  'https://stevenscountywa.municipalone.com/20972/Inmate-Roster': 'official county roster page, not a monitor; publishes no status.json',
-  'https://omsweb.public-safety-cloud.com/jtclientweb/jailtracker/index/Lincoln_County_WA': 'official JailTracker page, not a monitor; publishes no status.json',
+  // Links straight to a county's official roster — no monitor, no data.
+  'https://www.ferry-county.com/law_and_justice/sheriff/jail/inmate_roster.php#outer-387': 'official county roster link; no monitor',
+  'https://stevenscountywa.municipalone.com/20972/Inmate-Roster': 'official county roster link; no monitor',
+  'https://omsweb.public-safety-cloud.com/jtclientweb/jailtracker/index/Lincoln_County_WA': 'official county roster link; no monitor',
+  'https://www.bentoncountywa.gov/departments/administration/corrections/daily_jail_roster.php': 'official county roster link; no monitor',
+  'https://www.co.chelan.wa.us/regional-jail/inmate-list': 'official county roster link; no monitor',
+  'https://inmateroster.bipintc.org/NewWorld.InmateInquiry/WA0110000': 'official county roster link; no monitor',
+  'https://www.grantcountywa.gov/1538/Jail-Inmate-Roster': 'official county roster link; no monitor',
+  'https://islandcountywa.gov/1174/Jail-Roster': 'official county roster link; no monitor',
+  'https://www.okanogancounty.gov/291/Booking-Inmate-Log': 'official county roster link; no monitor',
+  'https://www.skamaniacounty.gov/Home/Components/ServiceDirectory/ServiceDirectory/100/': 'official county roster link; no monitor',
+  'https://snohomishcountywa.gov/3474/Jail-Register-Bail-Information': 'official county roster link; no monitor',
+  'https://cp.spokanecounty.org/detentionservices/inmateroster.aspx': 'official county roster link; no monitor',
+  'https://portal.ci.walla-walla.wa.us:9843/NewWorld.InmateInquiry/wallawalla?Page=1': 'official county roster link; no monitor',
+  'https://www.whitmancountyjail.org/': 'official county roster link; no monitor',
+  'https://www.yakimacounty.us/2240/Inmate-Lookup': 'official county roster link; no monitor',
 };
 
 export const RELEASE_TYPE_NAMES = {
