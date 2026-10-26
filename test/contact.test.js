@@ -4,7 +4,7 @@ import express from 'express';
 import fs from 'fs';
 import os from 'os';
 import path from 'path';
-import { validateContact, createRateLimiter, renderContactPage, readContactLog, createContactRouter } from '../routes/contact.js';
+import { validateContact, createRateLimiter, renderContactPage, renderContactMessages, readContactLog, createContactRouter } from '../routes/contact.js';
 
 async function withServer(opts, fn) {
   const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'contact-'));
@@ -65,11 +65,33 @@ test('email failure still keeps the message and flags it in the admin view', asy
   await withServer({ sendEmail: async () => { throw new Error('boom'); } }, async ({ base, post }) => {
     const res = await post({ message: 'Message that fails to email.' });
     assert.equal(res.status, 200);
-    const msgs = await (await fetch(`${base}/api/admin/contact-messages`)).json();
+    const msgs = await (await fetch(`${base}/api/admin/contact-messages?format=json`)).json();
     assert.equal(msgs.length, 1);
     assert.equal(msgs[0].message, 'Message that fails to email.');
     assert.equal(msgs[0].emailFailed, 'boom');
   });
+});
+
+test('admin view renders messages as an escaped page, newest first, flagging failed emails', async () => {
+  let fail = true;
+  await withServer({ sendEmail: async () => { if (fail) throw new Error('boom'); } }, async ({ base, post }) => {
+    await post({ message: 'Older message that <b>failed</b>.' });
+    fail = false;
+    await post({ name: 'Pat', email: 'pat@example.com', message: 'Newer message that emailed.' });
+    const res = await fetch(`${base}/api/admin/contact-messages`);
+    assert.match(res.headers.get('content-type'), /text\/html/);
+    const html = await res.text();
+    assert.match(html, /2 messages, newest first/);
+    assert.match(html, /1 didn’t email/);
+    assert.ok(html.indexOf('Newer message') < html.indexOf('Older message'));
+    assert.match(html, /mailto:pat@example.com/);
+    assert.match(html, /Email to Proton failed/);
+    assert.ok(html.includes('&lt;b&gt;failed&lt;/b&gt;'));
+  });
+});
+
+test('admin view with no messages says so', () => {
+  assert.match(renderContactMessages([]), /No messages yet/);
 });
 
 test('honeypot submissions get a success page but are neither logged nor sent', async () => {
