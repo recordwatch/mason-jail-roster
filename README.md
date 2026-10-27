@@ -58,6 +58,30 @@ Railway env vars:
 
 Spam defense is a hidden honeypot field plus 5 submissions per IP per hour.
 
+## Maintenance: scraper token expires August 2027
+
+GitHub's own scheduled runs only fire every few hours for small repos, so the
+county monitors are really triggered every 30 minutes by **cron-job.org** jobs.
+Each job POSTs to
+`https://api.github.com/repos/recordwatch/<repo>/actions/workflows/scrape.yml/dispatches`
+with body `{"ref":"main"}`, authenticated with one fine-grained GitHub token
+(Actions: read & write on the monitor repos).
+
+**That token expires August 28, 2027.** After that the jobs fail quietly and
+the monitors fall back to GitHub's slow schedule. Nothing breaks visibly; the
+data just goes stale for hours at a time.
+
+Before then (aim for July 2027):
+
+1. GitHub → Settings → Developer settings → Fine-grained tokens: regenerate
+   the token (or make a new one with the same repos and permission).
+2. In cron-job.org, paste the new token into **every** monitor job:
+   cowlitz-county-monitor, lewis-county-monitor, clark-county-monitor,
+   skagit-county-monitor, kittitas-county-monitor, nisqually-jail-monitor,
+   plus any other monitor you've set up there.
+3. Check one job's history shows a 204 response, and that repo's Actions tab
+   shows a new "workflow_dispatch" run.
+
 ## Stack
 
 - Node.js / Express
