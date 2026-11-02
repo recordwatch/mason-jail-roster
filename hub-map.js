@@ -71,7 +71,8 @@ export const HUB_MAP_CSS = `
     .map-card { background: #1B2A20; border: 1px solid #2E4433; border-radius: 6px; padding: 0.75rem; margin-bottom: 0.75rem; }
     .wa-map { display: block; width: 100%; height: auto; }
     .wa-map .county { fill: #24332A; stroke: #3A5240; stroke-width: 0.6; }
-    .wa-map a .county { fill: #6E9461; stroke: #121A15; stroke-width: 1; cursor: pointer; transition: fill 0.15s; }
+    .wa-map a .county { fill: #3D5245; stroke: #121A15; stroke-width: 1; cursor: pointer; transition: fill 0.15s; }
+    .wa-map a.monitored .county { fill: #6E9461; }
     .wa-map a:hover .county, .wa-map a:focus-visible .county, .wa-map a.is-active .county { fill: #A9BE9C; }
     .wa-map a:focus { outline: none; }
     .wa-map a:focus-visible .county { stroke: #E7EBDF; stroke-width: 2; }
@@ -103,7 +104,7 @@ export function renderHubMap() {
       // put a dead stop for every unmonitored county in the keyboard tab order before the real links.
       return `<path class="county" tabindex="-1" d="${c.d}" data-name="${escapeHtml(c.name)} County" data-note="${escapeHtml(note)}"><title>${escapeHtml(c.name)} County — ${escapeHtml(note)}</title></path>`;
     }
-    return `<a ${linkAttrs(m)} aria-label="${escapeHtml(m.label)} jail monitor" data-name="${escapeHtml(m.label)}"><path class="county" d="${c.d}"><title>${escapeHtml(m.label)} — open monitor</title></path></a>`;
+    return `<a ${linkAttrs(m)}${m.internal ? ' class="monitored"' : ''} aria-label="${escapeHtml(m.label)} jail monitor" data-name="${escapeHtml(m.label)}"><path class="county" d="${c.d}"><title>${escapeHtml(m.label)} — open monitor</title></path></a>`;
   }).join('');
 
   const marker = nisqually
@@ -123,8 +124,9 @@ export function renderHubMap() {
       </svg>
       <div class="map-caption" id="map-caption"><span class="muted">Select a county to open its jail monitor</span></div>
       <div class="map-legend">
-        <span><i class="swatch" style="background:#6E9461"></i>Monitored (${byCounty.size} counties)</span>
-        <span><i class="swatch" style="background:#24332A;border:1px solid #3A5240"></i>Not monitored</span>
+        <span><i class="swatch" style="background:#6E9461"></i>Actively monitored (1 county)</span>
+        <span><i class="swatch" style="background:#3D5245;border:1px solid #4A6352"></i>External roster link (${byCounty.size - 1} counties)</span>
+        <span><i class="swatch" style="background:#24332A;border:1px solid #3A5240"></i>No online roster</span>
         <span><i class="swatch" style="background:#E7EBDF;border-radius:50%"></i>Nisqually tribal jail</span>
       </div>
     </div>
