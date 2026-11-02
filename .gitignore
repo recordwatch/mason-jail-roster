@@ -1,0 +1,24 @@
+node_modules/
+.env
+*.log
+
+# Editor / tool caches
+.claude/
+.mastra/
+.clj-kondo/
+.lsp/
+
+# Data files (persisted on Railway volume at runtime)
+*.txt
+*.pdf
+*_backup.json
+# Contact form submissions hold visitors' messages and emails
+contact_messages.jsonl
+# Downloaded DB copies hold real names; never commit them
+*.sqlite
+*.sqlite-wal
+*.sqlite-shm
+
+# Git's own scratch file, picked up by `git add .` in some setups
+FETCH_HEAD
+jail roster audit.md

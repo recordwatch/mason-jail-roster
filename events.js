@@ -1,0 +1,270 @@
+import db from './db.js';
+import { parseBookingDate, toIsoDateTime } from './utils.js';
+
+// Parse a formatted change-log line (the same text formatBooked/formatReleased
+// produce) into structured fields for the events table. Used both for the
+// one-time historical migration and for live writes — /api/run still builds
+// the display string via formatBooked/formatReleased, then this re-derives
+// the structured fields from it, so there is exactly one parsing path to
+// keep correct rather than two (a "build" path and a separate "store" path
+// that could drift apart).
+function parseEventLine(rawLine) {
+  const trimmed = rawLine.trim();
+  if (!trimmed) return null;
+
+  let type, rest;
+  if (trimmed.startsWith('BOOKED | ')) {
+    type = 'BOOKED';
+    rest = trimmed.slice('BOOKED | '.length);
+  } else if (trimmed.startsWith('RELEASED | ')) {
+    type = 'RELEASED';
+    rest = trimmed.slice('RELEASED | '.length);
+  } else {
+    return null; // stray section header or other non-event noise
+  }
+
+  const name = (rest.split(' | ')[0] || 'Unknown').trim();
+
+  const dateToken = extractRawDateToken(trimmed, type === 'BOOKED' ? 'Booked' : 'Released');
+  const date = toCanonicalIso(dateToken);
+
+  const chargesMatch = trimmed.match(/Charges:\s+(.+)$/);
+  const charges = chargesMatch ? chargesMatch[1].trim() : '';
+
+  const timeServedMatch = trimmed.match(/Time served:\s+([^|(]+)/);
+  const timeServed = timeServedMatch ? timeServedMatch[1].trim() : null;
+
+  const bailMatch = trimmed.match(/Bail Posted:\s+(\$[\d,]+\.\d{2})/);
+  const bail = bailMatch ? bailMatch[1].trim() : null;
+
+  // The release-type parenthetical always immediately precedes "| Charges:"
+  // (see formatReleased). Anchoring on that avoids false matches from a
+  // parenthetical embedded in the charges/statute text itself, e.g.
+  // "9A.46.080 (O)Probation, Parole Violation" has no real release type.
+  const releaseTypeMatch = trimmed.match(/\(([^)]+)\)\s*\|\s*Charges:/);
+  const releaseType = releaseTypeMatch ? releaseTypeMatch[1].trim() : null;
+
+  return { type, name, date, charges, timeServed, bail, releaseType };
+}
+
+function extractRawDateToken(line, label) {
+  const m = line.match(new RegExp(
+    `${label}:\\s+(\\d{4}-\\d{2}-\\d{2}(?:T\\d{2}:\\d{2}:\\d{2})?|\\d{1,2}\\/\\d{1,2}\\/\\d{2,4}(?:\\s+\\d{1,2}:\\d{2}:\\d{2})?|Unknown|Not Released)`
+  ));
+  return m ? m[1] : null;
+}
+
+function toCanonicalIso(raw) {
+  if (!raw || raw === 'Unknown' || raw === 'Not Released') return null;
+  if (/^\d{4}-\d{2}-\d{2}/.test(raw)) {
+    return parseBookingDate(raw) ? raw : null;
+  }
+  const m = raw.match(/^(\d{1,2}\/\d{1,2}\/\d{2,4})(?:\s+(\d{1,2}:\d{2}:\d{2}))?$/);
+  if (!m) return null;
+  const iso = toIsoDateTime(m[1], m[2]);
+  return parseBookingDate(iso) ? iso : null;
+}
+
+// A single raw change_log.txt line can contain more than one record glued
+// together with no line break (a known historical data-corruption bug from
+// before this migration). Split on every "BOOKED | " / "RELEASED | "
+// boundary so each record is parsed independently instead of one record's
+// text leaking into another's charges field.
+function splitGluedRecords(rawLine) {
+  return rawLine.split(/(?=BOOKED \| |RELEASED \| )/).filter(p => p.trim());
+}
+
+const insertEventStmt = db.prepare(`
+  INSERT INTO events (event_type, name, event_date, charges, time_served, bail, release_type)
+  VALUES (?, ?, ?, ?, ?, ?, ?)
+`);
+
+function insertEvent({ type, name, date, charges, timeServed, bail, releaseType }) {
+  insertEventStmt.run(type, name, date, charges || '', timeServed, bail, releaseType);
+}
+
+// Parse and insert every record found in a raw change_log.txt line
+// (handling the glued-record case). Returns the number of rows inserted.
+function insertEventsFromLine(rawLine) {
+  let inserted = 0;
+  for (const record of splitGluedRecords(rawLine)) {
+    const parsed = parseEventLine(record);
+    if (!parsed) continue;
+    insertEvent(parsed);
+    inserted++;
+  }
+  return inserted;
+}
+
+// Reconstruct the events table as an array of formatted text lines, in the
+// exact format formatBooked/formatReleased used to produce, so the existing
+// /api/history, /api/stats, and /api/deepstats parsing logic (which expects
+// an array of lines) can run completely unchanged against database-backed data.
+//
+// Passing windowDays/maxCustodyDays restricts the result to rows from the
+// last windowDays, plus every row for anyone whose most recent event is a
+// BOOKED within the last maxCustodyDays (i.e. still presumed to be in
+// custody) — used by /api/history to avoid publishing unbounded historical
+// names. Omitting them (the default) returns the full, unfiltered table,
+// unchanged from before this option existed.
+function getAllEventLines({ windowDays, maxCustodyDays } = {}) {
+  const rows = (windowDays != null && maxCustodyDays != null)
+    ? db.prepare(`
+        SELECT e.* FROM events e
+        WHERE datetime(e.event_date) >= datetime('now', ?)
+           OR e.name IN (
+             SELECT name FROM events
+             GROUP BY name
+             HAVING MAX(id) = MAX(CASE WHEN event_type = 'BOOKED' THEN id END)
+                AND datetime(MAX(event_date)) >= datetime('now', ?)
+           )
+        ORDER BY e.id ASC
+      `).all(`-${windowDays} days`, `-${maxCustodyDays} days`)
+    : db.prepare('SELECT * FROM events ORDER BY id ASC').all();
+  return rows.map(row => `${row.event_type} | ${rowToLine(row)}`);
+}
+
+// Byte-faithful reconstruction of the original change_log.txt line format
+// from stored fields. Deliberately does not recompute anything (e.g. time
+// served) — it just replays what was already computed and stored, so a row
+// written today reconstructs identically whenever it's read back later.
+function rowToLine(row) {
+  const chargeText = row.charges && row.charges.length > 0 ? row.charges : 'None listed';
+
+  if (row.event_type === 'BOOKED') {
+    const dateStr = row.event_date ?? 'Unknown';
+    return `${row.name} | Booked: ${dateStr} | Charges: ${chargeText}`;
+  }
+
+  // RELEASED — a RELEASED row always represents a release that did happen;
+  // "Unknown" means the date specifically is unknown (matches the historical
+  // sentinel actually used in change_log.txt). "Not Released" is a different
+  // concept used elsewhere (the live roster CSV/stats) for someone who
+  // hasn't been released at all, and never appears on a RELEASED line.
+  const dateStr = row.event_date ?? 'Unknown';
+  let text = `${row.name} | Released: ${dateStr}`;
+  if (row.time_served) text += ` | Time served: ${row.time_served}`;
+  if (row.bail) {
+    const bailAmount = parseFloat(row.bail.replace(/[$,]/g, ''));
+    if (bailAmount > 0) text += ` | Bail Posted: ${row.bail}`;
+  }
+  if (row.release_type) text += ` (${row.release_type})`;
+  text += ` | Charges: ${chargeText}`;
+  return text;
+}
+
+const insertReleaseStmt = db.prepare(`
+  INSERT OR IGNORE INTO releases (name, release_date_time, release_type, time_served, bail)
+  VALUES (?, ?, ?, ?, ?)
+`);
+
+// Insert a release record (from the release-stats PDF), deduped by
+// (name, release_date_time) via the table's UNIQUE constraint — replaces
+// the old manual existingKeys Set + JSON rewrite.
+function insertRelease({ name, releaseDateTime, releaseType, timeServed, bail }) {
+  const result = insertReleaseStmt.run(name, releaseDateTime, releaseType, timeServed, bail);
+  return result.changes > 0;
+}
+
+function getAllReleases() {
+  return db.prepare('SELECT name, release_date_time as releaseDateTime, release_type as releaseType, time_served as timeServed, bail FROM releases ORDER BY id ASC').all();
+}
+
+// For every release, finds the most recent BOOKED event for that name at or
+// before the release (a correlated subquery per row, not a join) - a name
+// can have multiple booking/release cycles, so a plain join would multiply
+// rows or match the wrong cycle. bookingDate is null when no BOOKED event
+// precedes the release (e.g. a release with no corresponding booking in our
+// history), which callers must handle by excluding that row from comparison.
+// bookingCharges is that same booking's charge text, so a repeat arrestee's
+// release carries the charges from the stint it ended, not their first one.
+function getReleasesWithBookingDate() {
+  return db.prepare(`
+    SELECT
+      r.name,
+      r.release_date_time AS releaseDateTime,
+      r.time_served AS masonTimeServed,
+      r.release_type AS releaseType,
+      r.bail,
+      (
+        SELECT MAX(e.event_date)
+        FROM events e
+        WHERE e.event_type = 'BOOKED'
+          AND upper(trim(e.name)) = upper(trim(r.name))
+          AND e.event_date <= r.release_date_time
+      ) AS bookingDate,
+      (
+        SELECT e.charges
+        FROM events e
+        WHERE e.event_type = 'BOOKED'
+          AND upper(trim(e.name)) = upper(trim(r.name))
+          AND e.event_date <= r.release_date_time
+        ORDER BY e.event_date DESC, e.id DESC
+        LIMIT 1
+      ) AS bookingCharges
+    FROM releases r
+    ORDER BY r.id ASC
+  `).all();
+}
+
+// Record court + offense class for every charge on every booking in a parsed
+// roster (extractBookings output). INSERT OR IGNORE on the table's unique key
+// makes this safe to call on every scrape and to re-run over archived PDFs:
+// a charge already recorded is skipped, so the first source to see it wins.
+// A missing court/class is stored as '' rather than NULL because SQLite
+// treats NULLs as distinct in UNIQUE constraints, so such a charge would
+// otherwise be re-inserted on every run.
+const insertBookingChargeStmt = db.prepare(`
+  INSERT OR IGNORE INTO booking_charges (booking_id, name, book_date, offense, court, offense_class, source)
+  VALUES (?, ?, ?, ?, ?, ?, ?)
+`);
+function recordBookingCharges(bookings, source) {
+  let inserted = 0;
+  db.exec('BEGIN');
+  try {
+    for (const [id, b] of bookings) {
+      const bookDate = b.bookDate && b.bookDate !== 'Unknown' ? b.bookDate : null;
+      for (const c of b.chargeDetails || []) {
+        const r = insertBookingChargeStmt.run(id, b.name, bookDate, c.offense, c.court ?? '', c.offenseClass ?? '', source);
+        inserted += r.changes;
+      }
+    }
+    db.exec('COMMIT');
+  } catch (e) {
+    db.exec('ROLLBACK');
+    throw e;
+  }
+  return inserted;
+}
+
+// Every recorded charge class code with the booking it belongs to, for
+// joining to releases by (normalized name, booking date).
+function getBookingChargeCodes() {
+  return db.prepare("SELECT name, book_date AS bookDate, offense_class AS code FROM booking_charges WHERE book_date IS NOT NULL AND offense_class != ''").all();
+}
+
+// Wipe both tables. Used by the historical migration endpoint so it can be
+// re-run safely — inserts into `events` have no unique constraint (unlike
+// `releases`), so re-running an additive import would duplicate everything.
+// Rebuilding from the text files (the ground truth during the dual-write
+// transition period) on every run keeps the migration idempotent.
+function clearAllData() {
+  db.exec('DELETE FROM events');
+  db.exec('DELETE FROM releases');
+  db.exec("DELETE FROM sqlite_sequence WHERE name IN ('events', 'releases')");
+}
+
+export {
+  parseEventLine,
+  splitGluedRecords,
+  toCanonicalIso,
+  insertEvent,
+  insertEventsFromLine,
+  getAllEventLines,
+  insertRelease,
+  getAllReleases,
+  getReleasesWithBookingDate,
+  recordBookingCharges,
+  getBookingChargeCodes,
+  clearAllData
+};
