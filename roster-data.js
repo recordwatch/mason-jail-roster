@@ -39,35 +39,51 @@ async function fetchReleaseStats() {
         j++;
       }
 
-      // Now parse the complete record
-      // Pattern: NAME RELEASE_TYPE TIME_SERVED BAIL
-      // Example: "BARNACASCEL, LEON D.RNF3 d 3 h 27 m$0.00"
-      // Example: "HILARIO GARCIA, JESSICA G. RPR 0 d 23 h 9 m $0.00"
+      // Parse the complete record. Two formats exist:
+      //
+      // Old (pre-Oct 2026): NAME + 2-5 uppercase code + time + bail
+      //   "BARNACASCEL, LEON D.RNF3 d 3 h 27 m$0.00"
+      //
+      // New (Oct 2026+): NAME (all caps) + full English type (mixed case) + time + bail
+      //   "BENTLEY, JONATHAN T.Adult, Released to Own Custody 1 d 2 h 14 m$0.00"
+      //
+      // Detect by searching for the first capital→lowercase transition in the
+      // name+type portion: names are ALL CAPS, so the first Cap+lower pair
+      // marks the start of the new-style release type text.
 
-      const recordMatch = fullText.match(/^(.+?)\s*([A-Z]{2,5})\s*(\d+\s*d\s*\d+\s*h\s*\d+\s*m)\s*\$?([\d,]+\.\d{2})/);
+      // Strip time+bail from the end first.
+      const timeBailMatch = fullText.match(/^(.+?)\s*(\d+\s*d\s*\d+\s*h\s*\d+\s*m)\s*\$?([\d,]+\.\d{2})\s*$/);
+      if (!timeBailMatch) continue;
 
-      if (recordMatch) {
-        const rawName = recordMatch[1];
-        const releaseType = recordMatch[2];
-        const timeServed = recordMatch[3];
-        const bail = recordMatch[4];
+      const nameAndType = timeBailMatch[1];
+      const timeServed  = timeBailMatch[2];
+      const bail        = timeBailMatch[3];
 
-        // Clean up name
-        const cleanName = rawName.trim()
-          .replace(/\s+/g, ' ')
-          .replace(/\.\s*$/, '')
-          .replace(/\s*\.\s*$/, '');
-
-        releaseMap.set(cleanName, {
-          releaseDateTime: toIsoDateTime(date, time),
-          releaseType,
-          timeServed: timeServed.replace(/\s+/g, ''),
-          bail: `$${bail}`
-        });
-
-        // Skip the lines we consumed
-        i = j - 1;
+      let cleanName, releaseType;
+      const releaseTypeStart = nameAndType.search(/[A-Z][a-z]/);
+      if (releaseTypeStart !== -1) {
+        // New format: split at the capital→lowercase transition.
+        cleanName   = nameAndType.slice(0, releaseTypeStart).replace(/[.\s]+$/, '').trim();
+        releaseType = nameAndType.slice(releaseTypeStart).trim();
+      } else {
+        // Old format: 2-5 uppercase code at the end of the name+type portion.
+        const oldCode = nameAndType.match(/^(.+?)\s*([A-Z]{2,5})$/);
+        if (!oldCode) continue;
+        cleanName   = oldCode[1].trim().replace(/\.\s*$/, '');
+        releaseType = oldCode[2];
       }
+
+      if (!cleanName) continue;
+
+      releaseMap.set(cleanName, {
+        releaseDateTime: toIsoDateTime(date, time),
+        releaseType,
+        timeServed: timeServed.replace(/\s+/g, ''),
+        bail: `$${bail}`
+      });
+
+      // Skip the lines we consumed.
+      i = j - 1;
     }
 
     console.log(`✓ Parsed ${releaseMap.size} releases from PDF`);
