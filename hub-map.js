@@ -14,6 +14,8 @@ const MAP = JSON.parse(fs.readFileSync(path.join(__dirname, 'wa-counties.json'),
 // Every monitor the hub links to. `county` must match a county name in
 // wa-counties.json; Nisqually is a tribal jail, drawn as a marker instead.
 // `internal` links stay in this tab (Mason is served by this app).
+// `roster` entries link straight to a county's official roster: we run no
+// monitor there. Everything else is a monitor of ours with its own repo.
 export const HUB_MONITORS = [
   { county: 'Mason',        label: 'Mason County',        url: '/api/history', internal: true },
   { county: 'Kitsap',       label: 'Kitsap County',       url: 'https://recordwatch.github.io/ksco-scraper/' },
@@ -31,21 +33,21 @@ export const HUB_MONITORS = [
   { county: 'Clark',        label: 'Clark County',        url: 'https://recordwatch.github.io/clark-county-monitor/' },
   { county: 'Skagit',       label: 'Skagit County',       url: 'https://recordwatch.github.io/skagit-county-monitor/' },
   { county: 'Kittitas',     label: 'Kittitas County',     url: 'https://recordwatch.github.io/kittitas-county-monitor/' },
-  { county: 'Ferry',        label: 'Ferry County',        url: 'https://www.ferry-county.com/law_and_justice/sheriff/jail/inmate_roster.php#outer-387' },
-  { county: 'Stevens',      label: 'Stevens County',      url: 'https://stevenscountywa.municipalone.com/20972/Inmate-Roster' },
-  { county: 'Lincoln',      label: 'Lincoln County',      url: 'https://omsweb.public-safety-cloud.com/jtclientweb/jailtracker/index/Lincoln_County_WA' },
-  { county: 'Benton',       label: 'Benton County',       url: 'https://www.bentoncountywa.gov/departments/administration/corrections/daily_jail_roster.php' },
-  { county: 'Chelan',       label: 'Chelan County',       url: 'https://www.co.chelan.wa.us/regional-jail/inmate-list' },
-  { county: 'Franklin',     label: 'Franklin County',     url: 'https://inmateroster.bipintc.org/NewWorld.InmateInquiry/WA0110000' },
-  { county: 'Grant',        label: 'Grant County',        url: 'https://www.grantcountywa.gov/1538/Jail-Inmate-Roster' },
-  { county: 'Island',       label: 'Island County',       url: 'https://islandcountywa.gov/1174/Jail-Roster' },
-  { county: 'Okanogan',     label: 'Okanogan County',     url: 'https://www.okanogancounty.gov/291/Booking-Inmate-Log' },
-  { county: 'Skamania',     label: 'Skamania County',     url: 'https://www.skamaniacounty.gov/Home/Components/ServiceDirectory/ServiceDirectory/100/' },
-  { county: 'Snohomish',    label: 'Snohomish County',    url: 'https://snohomishcountywa.gov/3474/Jail-Register-Bail-Information' },
-  { county: 'Spokane',      label: 'Spokane County',      url: 'https://cp.spokanecounty.org/detentionservices/inmateroster.aspx' },
-  { county: 'Walla Walla',  label: 'Walla Walla County',  url: 'https://portal.ci.walla-walla.wa.us:9843/NewWorld.InmateInquiry/wallawalla?Page=1' },
-  { county: 'Whitman',      label: 'Whitman County',      url: 'https://www.whitmancountyjail.org/' },
-  { county: 'Yakima',       label: 'Yakima County',       url: 'https://www.yakimacounty.us/2240/Inmate-Lookup' },
+  { county: 'Ferry',        label: 'Ferry County',        url: 'https://www.ferry-county.com/law_and_justice/sheriff/jail/inmate_roster.php#outer-387', roster: true },
+  { county: 'Stevens',      label: 'Stevens County',      url: 'https://stevenscountywa.municipalone.com/20972/Inmate-Roster', roster: true },
+  { county: 'Lincoln',      label: 'Lincoln County',      url: 'https://omsweb.public-safety-cloud.com/jtclientweb/jailtracker/index/Lincoln_County_WA', roster: true },
+  { county: 'Benton',       label: 'Benton County',       url: 'https://www.bentoncountywa.gov/departments/administration/corrections/daily_jail_roster.php', roster: true },
+  { county: 'Chelan',       label: 'Chelan County',       url: 'https://www.co.chelan.wa.us/regional-jail/inmate-list', roster: true },
+  { county: 'Franklin',     label: 'Franklin County',     url: 'https://inmateroster.bipintc.org/NewWorld.InmateInquiry/WA0110000', roster: true },
+  { county: 'Grant',        label: 'Grant County',        url: 'https://www.grantcountywa.gov/1538/Jail-Inmate-Roster', roster: true },
+  { county: 'Island',       label: 'Island County',       url: 'https://islandcountywa.gov/1174/Jail-Roster', roster: true },
+  { county: 'Okanogan',     label: 'Okanogan County',     url: 'https://www.okanogancounty.gov/291/Booking-Inmate-Log', roster: true },
+  { county: 'Skamania',     label: 'Skamania County',     url: 'https://www.skamaniacounty.gov/Home/Components/ServiceDirectory/ServiceDirectory/100/', roster: true },
+  { county: 'Snohomish',    label: 'Snohomish County',    url: 'https://snohomishcountywa.gov/3474/Jail-Register-Bail-Information', roster: true },
+  { county: 'Spokane',      label: 'Spokane County',      url: 'https://cp.spokanecounty.org/detentionservices/inmateroster.aspx', roster: true },
+  { county: 'Walla Walla',  label: 'Walla Walla County',  url: 'https://portal.ci.walla-walla.wa.us:9843/NewWorld.InmateInquiry/wallawalla?Page=1', roster: true },
+  { county: 'Whitman',      label: 'Whitman County',      url: 'https://www.whitmancountyjail.org/', roster: true },
+  { county: 'Yakima',       label: 'Yakima County',       url: 'https://www.yakimacounty.us/2240/Inmate-Lookup', roster: true },
   { county: null,           label: 'Nisqually Tribe',     url: 'https://recordwatch.github.io/nisqually-jail-monitor/', marker: 'nisqually' }
 ];
 
@@ -62,6 +64,8 @@ const NO_ONLINE_ROSTER = {
 };
 
 const escapeHtml = s => String(s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+
+const hint = m => m.roster ? 'open county roster' : 'open monitor';
 
 function linkAttrs(m) {
   return m.internal ? `href="${escapeHtml(m.url)}"` : `href="${escapeHtml(m.url)}" target="_blank" rel="noopener noreferrer"`;
@@ -95,6 +99,8 @@ export const HUB_MAP_CSS = `
 export function renderHubMap() {
   const byCounty = new Map(HUB_MONITORS.filter(m => m.county).map(m => [m.county, m]));
   const nisqually = HUB_MONITORS.find(m => m.marker === 'nisqually');
+  const monitoredCounties = HUB_MONITORS.filter(m => m.county && !m.roster).length;
+  const rosterCounties = HUB_MONITORS.filter(m => m.county && m.roster).length;
 
   const shapes = MAP.counties.map(c => {
     const m = byCounty.get(c.name);
@@ -104,16 +110,16 @@ export function renderHubMap() {
       // put a dead stop for every unmonitored county in the keyboard tab order before the real links.
       return `<path class="county" tabindex="-1" d="${c.d}" data-name="${escapeHtml(c.name)} County" data-note="${escapeHtml(note)}"><title>${escapeHtml(c.name)} County — ${escapeHtml(note)}</title></path>`;
     }
-    return `<a ${linkAttrs(m)}${m.internal ? ' class="monitored"' : ''} aria-label="${escapeHtml(m.label)} jail monitor" data-name="${escapeHtml(m.label)}"><path class="county" d="${c.d}"><title>${escapeHtml(m.label)} — open monitor</title></path></a>`;
+    return `<a ${linkAttrs(m)}${m.roster ? '' : ' class="monitored"'} aria-label="${escapeHtml(m.label)} ${m.roster ? 'jail roster' : 'jail monitor'}" data-name="${escapeHtml(m.label)}" data-hint="${hint(m)}"><path class="county" d="${c.d}"><title>${escapeHtml(m.label)} — ${hint(m)}</title></path></a>`;
   }).join('');
 
   const marker = nisqually
-    ? `<a ${linkAttrs(nisqually)} aria-label="${escapeHtml(nisqually.label)} jail monitor" data-name="${escapeHtml(nisqually.label)}"><circle class="marker" cx="${MAP.nisqually.x}" cy="${MAP.nisqually.y}" r="5"><title>${escapeHtml(nisqually.label)} — open monitor</title></circle></a>`
+    ? `<a ${linkAttrs(nisqually)} aria-label="${escapeHtml(nisqually.label)} jail monitor" data-name="${escapeHtml(nisqually.label)}" data-hint="${hint(nisqually)}"><circle class="marker" cx="${MAP.nisqually.x}" cy="${MAP.nisqually.y}" r="5"><title>${escapeHtml(nisqually.label)} — open monitor</title></circle></a>`
     : '';
 
   const list = [...HUB_MONITORS]
     .sort((a, b) => a.label.localeCompare(b.label))
-    .map(m => `<a ${linkAttrs(m)} data-name="${escapeHtml(m.label)}">${escapeHtml(m.label)}</a>`)
+    .map(m => `<a ${linkAttrs(m)} data-name="${escapeHtml(m.label)}" data-hint="${hint(m)}">${escapeHtml(m.label)}</a>`)
     .join('');
 
   return `
@@ -124,10 +130,10 @@ export function renderHubMap() {
       </svg>
       <div class="map-caption" id="map-caption"><span class="muted">Select a county to open its jail monitor</span></div>
       <div class="map-legend">
-        <span><i class="swatch" style="background:#6E9461"></i>Actively monitored (1 county)</span>
-        <span><i class="swatch" style="background:#3D5245;border:1px solid #4A6352"></i>External roster link (${byCounty.size - 1} counties)</span>
+        <span><i class="swatch" style="background:#6E9461"></i>Actively monitored (${monitoredCounties} counties)</span>
+        <span><i class="swatch" style="background:#3D5245;border:1px solid #4A6352"></i>County roster link (${rosterCounties} counties)</span>
         <span><i class="swatch" style="background:#24332A;border:1px solid #3A5240"></i>No online roster</span>
-        <span><i class="swatch" style="background:#E7EBDF;border-radius:50%"></i>Nisqually tribal jail</span>
+        <span><i class="swatch" style="background:#E7EBDF;border-radius:50%"></i>Nisqually tribal jail (monitored)</span>
       </div>
     </div>
     <div class="section-label">All monitors</div>
@@ -145,7 +151,7 @@ export function renderHubMap() {
           caption.appendChild(document.createTextNode(name));
           var sub = document.createElement('span');
           sub.className = 'muted';
-          sub.textContent = note ? ' — ' + note : ' — open monitor →';
+          sub.textContent = ' — ' + (note || el.getAttribute('data-hint') + ' →');
           caption.appendChild(sub);
           all.forEach(function (o) { o.classList.toggle('is-active', o.getAttribute('data-name') === name && !note); });
         }
