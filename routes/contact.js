@@ -1,6 +1,7 @@
 import express from 'express';
 import fs from 'fs';
 import { RESEND_API_KEY, CONTACT_TO, CONTACT_FROM, CONTACT_LOG_FILE } from '../config.js';
+import { gaHead } from '../analytics.js';
 
 const escapeHtml = s => String(s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 
@@ -134,6 +135,7 @@ function renderShell({ title, intro, body, wide = false }) {
   return `<!DOCTYPE html>
 <html>
 <head>
+${gaHead()}
   <title>${title} — Washington Jail Data</title>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">

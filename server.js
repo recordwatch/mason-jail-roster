@@ -43,6 +43,7 @@ import {
   RELEASE_TYPE_NAMES
 } from './config.js';
 import { requireAdminKey } from './middleware.js';
+import { gaHead } from './analytics.js';
 import adminRouter from './routes/admin.js';
 import { createContactRouter } from './routes/contact.js';
 import { insertEventsFromLine, getAllEventLines, getAllReleases, getReleasesWithBookingDate, recordBookingCharges, getBookingChargeCodes } from './events.js';
@@ -195,14 +196,7 @@ app.get('/api/status', async (req, res) => {
   const html = `<!DOCTYPE html>
 <html>
 <head>
-<!-- Google tag (gtag.js) -->
-<script async src="https://www.googletagmanager.com/gtag/js?id=G-D2LNWC78X7"></script>
-<script>
-  window.dataLayer = window.dataLayer || [];
-  function gtag(){dataLayer.push(arguments);}
-  gtag('js', new Date());
-  gtag('config', 'G-D2LNWC78X7');
-</script>
+${gaHead()}
   <title>Washington Jail Data</title>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
@@ -672,32 +666,7 @@ app.get('/api/history', (req, res) => {
   const html = `<!DOCTYPE html>
 <html>
 <head>
-<!-- Google tag (gtag.js) -->
-<script async src="https://www.googletagmanager.com/gtag/js?id=G-LD86GBGC48"></script>
-<script>
-  window.dataLayer = window.dataLayer || [];
-  function gtag(){dataLayer.push(arguments);}
-  gtag('js', new Date());
-
-  gtag('config', 'G-LD86GBGC48');
-</script>
-<!-- Google tag (gtag.js) -->
-<script async src="https://www.googletagmanager.com/gtag/js?id=G-380L7KND2L"></script>
-<!-- Google tag (gtag.js) -->
-<script async src="https://www.googletagmanager.com/gtag/js?id=G-GTYXM5834L"></script>
-<script>
-  window.dataLayer = window.dataLayer || [];
-  function gtag(){dataLayer.push(arguments);}
-  gtag('js', new Date());
-
-  gtag('config', 'G-GTYXM5834L');
-</script>
-<script>
-  window.dataLayer = window.dataLayer || [];
-  function gtag(){dataLayer.push(arguments);}
-  gtag('js', new Date());
-  gtag('config', 'G-380L7KND2L');
-</script>
+${gaHead()}
   <title>Booked and Released Log - Washington Jail Data</title>
   <meta name="robots" content="noindex, noarchive">
   <meta charset="utf-8">
@@ -1251,6 +1220,7 @@ function getStatsHTML(stats) {
   return `<!DOCTYPE html>
 <html>
 <head>
+${gaHead()}
   <title>Statistics Dashboard - Washington Jail Data</title>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
@@ -2049,6 +2019,7 @@ function getDeepStatsHTML(d) {
   return `<!DOCTYPE html>
 <html>
 <head>
+${gaHead()}
   <title>Deep Stats — Washington Jail Data</title>
   <meta name="robots" content="noindex, noarchive">
   <meta charset="utf-8">
