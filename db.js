@@ -1,8 +1,13 @@
 import { DatabaseSync } from 'node:sqlite';
+import fs from 'fs';
 import path from 'path';
 import { STORAGE_DIR } from './config.js';
 
 const DB_PATH = path.join(STORAGE_DIR, 'mason.sqlite');
+
+// This module opens the database at import time, before server.js's
+// ensureStorageDir() runs, so a fresh volume would otherwise crash at boot.
+fs.mkdirSync(STORAGE_DIR, { recursive: true });
 
 const db = new DatabaseSync(DB_PATH);
 db.exec('PRAGMA journal_mode = WAL;');
