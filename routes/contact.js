@@ -2,6 +2,7 @@ import express from 'express';
 import fs from 'fs';
 import { RESEND_API_KEY, CONTACT_TO, CONTACT_FROM, CONTACT_LOG_FILE } from '../config.js';
 import { gaHead } from '../analytics.js';
+import { THEME_VARS } from '../theme.js';
 
 const escapeHtml = s => String(s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 
@@ -143,37 +144,38 @@ ${gaHead()}
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;700&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
   <style>
+    ${THEME_VARS}
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
-    body { font-family: 'Inter', Arial, sans-serif; font-size: 9pt; background: #121A15; color: #C9D3C2; min-height: 100vh; display: flex; justify-content: center; padding: 2rem 1rem; }
+    body { font-family: 'Inter', Arial, sans-serif; font-size: 9pt; background: var(--bg); color: var(--text); min-height: 100vh; display: flex; justify-content: center; padding: 2rem 1rem; }
     .wrapper { width: 100%; max-width: ${wide ? 720 : 520}px; }
-    .county-label { font-size: 0.7rem; font-weight: 600; letter-spacing: 2px; text-transform: uppercase; color: #A9BE9C; margin-bottom: 0.5rem; }
-    h1 { font-family: 'Playfair Display', Georgia, serif; font-size: 2.5rem; font-weight: 700; color: #E7EBDF; letter-spacing: -1px; line-height: 1.1; margin-bottom: 0.5rem; }
-    .intro { color: #83937C; margin-bottom: 1rem; line-height: 1.5; }
-    form { background: #1B2A20; border: 1px solid #2E4433; border-radius: 6px; padding: 1.25rem; display: flex; flex-direction: column; gap: 0.9rem; }
-    label { display: flex; flex-direction: column; gap: 0.35rem; font-size: 0.7rem; font-weight: 600; letter-spacing: 1px; text-transform: uppercase; color: #A9BE9C; }
-    .opt { margin-left: 0.35rem; font-weight: 400; letter-spacing: 0; text-transform: none; color: #83937C; }
-    input, textarea { font: inherit; font-size: 10pt; text-transform: none; letter-spacing: 0; font-weight: 400; color: #E7EBDF; background: #121A15; border: 1px solid #2E4433; border-radius: 4px; padding: 0.55rem 0.7rem; width: 100%; }
-    input:focus, textarea:focus { outline: none; border-color: #547048; }
+    .county-label { font-size: 0.7rem; font-weight: 600; letter-spacing: 2px; text-transform: uppercase; color: var(--accent); margin-bottom: 0.5rem; }
+    h1 { font-family: 'Playfair Display', Georgia, serif; font-size: 2.5rem; font-weight: 700; color: var(--head); letter-spacing: -1px; line-height: 1.1; margin-bottom: 0.5rem; }
+    .intro { color: var(--muted); margin-bottom: 1rem; line-height: 1.5; }
+    form { background: var(--card); border: 1px solid var(--border); border-radius: 6px; padding: 1.25rem; display: flex; flex-direction: column; gap: 0.9rem; }
+    label { display: flex; flex-direction: column; gap: 0.35rem; font-size: 0.7rem; font-weight: 600; letter-spacing: 1px; text-transform: uppercase; color: var(--accent); }
+    .opt { margin-left: 0.35rem; font-weight: 400; letter-spacing: 0; text-transform: none; color: var(--muted); }
+    input, textarea { font: inherit; font-size: 10pt; text-transform: none; letter-spacing: 0; font-weight: 400; color: var(--head); background: var(--bg); border: 1px solid var(--border); border-radius: 4px; padding: 0.55rem 0.7rem; width: 100%; }
+    input:focus, textarea:focus { outline: none; border-color: var(--hover); }
     textarea { resize: vertical; min-height: 8rem; }
-    button { font: inherit; font-weight: 600; font-size: 9pt; padding: 0.75rem 1.25rem; background: #547048; color: #E7EBDF; border: 0; border-radius: 6px; cursor: pointer; align-self: flex-start; }
-    button:hover { background: #64835A; }
+    button { font: inherit; font-weight: 600; font-size: 9pt; padding: 0.75rem 1.25rem; background: var(--hover); color: var(--head); border: 0; border-radius: 6px; cursor: pointer; align-self: flex-start; }
+    button:hover { background: var(--hover-light); }
     .hp { position: absolute; left: -9999px; width: 1px; height: 1px; overflow: hidden; }
     .notice { border-radius: 6px; padding: 0.85rem 1.25rem; margin-bottom: 0.75rem; border: 1px solid; }
-    .notice.ok { background: #1B2A20; border-color: #547048; color: #E7EBDF; }
+    .notice.ok { background: var(--card); border-color: var(--hover); color: var(--head); }
     .notice.err { background: #2A1B1B; border-color: #6B3434; color: #F0C9C9; }
-    .alt { margin-top: 0.75rem; color: #83937C; }
-    a { color: #A9BE9C; text-decoration: none; }
+    .alt { margin-top: 0.75rem; color: var(--muted); }
+    a { color: var(--accent); text-decoration: none; }
     .back { display: inline-block; margin-top: 1rem; font-size: 0.75rem; }
-    .msg { background: #1B2A20; border: 1px solid #2E4433; border-radius: 6px; padding: 1rem 1.25rem; margin-bottom: 0.75rem; }
+    .msg { background: var(--card); border: 1px solid var(--border); border-radius: 6px; padding: 1rem 1.25rem; margin-bottom: 0.75rem; }
     .msg.failed { border-color: #6B3434; }
     .msg-head { display: flex; justify-content: space-between; align-items: baseline; gap: 1rem; flex-wrap: wrap; }
-    .who { font-size: 10.5pt; font-weight: 600; color: #E7EBDF; }
-    .when { color: #83937C; white-space: nowrap; }
+    .who { font-size: 10.5pt; font-weight: 600; color: var(--head); }
+    .when { color: var(--muted); white-space: nowrap; }
     .from { margin-top: 0.2rem; }
-    .anon { color: #83937C; font-style: italic; font-weight: 400; }
+    .anon { color: var(--muted); font-style: italic; font-weight: 400; }
     .fail-note { margin-top: 0.6rem; padding: 0.45rem 0.7rem; border-radius: 4px; background: #2A1B1B; color: #F0C9C9; }
     .fail-count { color: #F0C9C9; }
-    .text { margin-top: 0.75rem; padding-top: 0.75rem; border-top: 1px solid #2E4433; font-size: 10pt; line-height: 1.55; color: #E7EBDF; white-space: pre-wrap; overflow-wrap: anywhere; }
+    .text { margin-top: 0.75rem; padding-top: 0.75rem; border-top: 1px solid var(--border); font-size: 10pt; line-height: 1.55; color: var(--head); white-space: pre-wrap; overflow-wrap: anywhere; }
     @media (max-width: 600px) { h1 { font-size: 1.75rem; } }
   </style>
 </head>
