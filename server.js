@@ -8,6 +8,7 @@ import { dirname } from 'path';
 import PDFParser from 'pdf-parse';
 import { extractBookings } from './parser.js';
 import { renderHubMap, HUB_MAP_CSS } from './hub-map.js';
+import { THEME_VARS, PIE_CHART_COLORS } from './theme.js';
 import {
   fetchReleaseStats,
   computeTimeServed,
@@ -204,36 +205,37 @@ ${gaHead()}
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;700&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
   <style>
+    ${THEME_VARS}
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
     html, body { overflow-x: hidden; width: 100%; }
-    body { font-family: 'Inter', Arial, sans-serif; font-size: 8pt; background: #121A15; color: #C9D3C2; min-height: 100vh; display: flex; justify-content: center; padding: 2rem 1rem; }
+    body { font-family: 'Inter', Arial, sans-serif; font-size: 8pt; background: var(--bg); color: var(--text); min-height: 100vh; display: flex; justify-content: center; padding: 2rem 1rem; }
     .wrapper { width: 100%; max-width: 520px; }
     .page-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.5rem; }
-    .county-label { font-size: 0.7rem; font-weight: 600; letter-spacing: 2px; text-transform: uppercase; color: #A9BE9C; }
-    .public-records { font-size: 0.7rem; font-weight: 500; letter-spacing: 1px; text-transform: uppercase; color: #83937C; }
-    h1 { font-family: 'Playfair Display', Georgia, serif; font-size: 2.5rem; font-weight: 700; color: #E7EBDF; letter-spacing: -1px; line-height: 1.1; margin-bottom: 1rem; }
-    .stats-bar { background: #1B2A20; border: 1px solid #2E4433; border-radius: 6px; padding: 0.85rem 1.25rem; display: flex; gap: 2rem; margin-bottom: 0.75rem; }
-    .stats-bar-value { font-size: 1.1rem; font-weight: 600; color: #A9BE9C; }
-    .stats-bar-label { font-size: 0.6rem; letter-spacing: 1.5px; text-transform: uppercase; color: #83937C; margin-top: 0.1rem; }
+    .county-label { font-size: 0.7rem; font-weight: 600; letter-spacing: 2px; text-transform: uppercase; color: var(--accent); }
+    .public-records { font-size: 0.7rem; font-weight: 500; letter-spacing: 1px; text-transform: uppercase; color: var(--muted); }
+    h1 { font-family: 'Playfair Display', Georgia, serif; font-size: 2.5rem; font-weight: 700; color: var(--head); letter-spacing: -1px; line-height: 1.1; margin-bottom: 1rem; }
+    .stats-bar { background: var(--card); border: 1px solid var(--border); border-radius: 6px; padding: 0.85rem 1.25rem; display: flex; gap: 2rem; margin-bottom: 0.75rem; }
+    .stats-bar-value { font-size: 1.1rem; font-weight: 600; color: var(--accent); }
+    .stats-bar-label { font-size: 0.6rem; letter-spacing: 1.5px; text-transform: uppercase; color: var(--muted); margin-top: 0.1rem; }
     .nav-section { display: flex; flex-direction: column; gap: 0.5rem; margin-bottom: 0.75rem; }
-    .nav-btn { display: block; padding: 0.85rem 1.25rem; background: #1B2A20; color: #C9D3C2; border-radius: 6px; text-decoration: none; font-weight: 600; font-size: 9pt; border: 1px solid #2E4433; transition: background 0.15s; }
-    .nav-btn:hover { background: #547048; color: #E7EBDF; }
-    details.status { background: #1B2A20; border-radius: 6px; border: 1px solid #2E4433; overflow: hidden; }
+    .nav-btn { display: block; padding: 0.85rem 1.25rem; background: var(--card); color: var(--text); border-radius: 6px; text-decoration: none; font-weight: 600; font-size: 9pt; border: 1px solid var(--border); transition: background 0.15s; }
+    .nav-btn:hover { background: var(--hover); color: var(--head); }
+    details.status { background: var(--card); border-radius: 6px; border: 1px solid var(--border); overflow: hidden; }
     details.status > summary { display: flex; align-items: center; gap: 0.5rem; cursor: pointer; list-style: none; padding: 0.85rem 1.25rem; }
     details.status > summary::-webkit-details-marker { display: none; }
     .status-dot { width: 8px; height: 8px; background: #22C55E; border-radius: 50%; animation: pulse 2s infinite; flex-shrink: 0; }
     @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.4; } }
-    .status-title { font-weight: 600; color: #E7EBDF; font-size: 9pt; flex: 1; }
-    .status-chevron { color: #83937C; font-size: 0.7rem; transition: transform 0.2s; }
+    .status-title { font-weight: 600; color: var(--head); font-size: 9pt; flex: 1; }
+    .status-chevron { color: var(--muted); font-size: 0.7rem; transition: transform 0.2s; }
     details.status[open] .status-chevron { transform: rotate(180deg); }
-    .stats-grid { display: grid; grid-template-columns: 1fr 1fr; border-top: 1px solid #2E4433; }
-    .stat { padding: 0.7rem 1.25rem; border-bottom: 1px solid #2E4433; border-right: 1px solid #2E4433; }
+    .stats-grid { display: grid; grid-template-columns: 1fr 1fr; border-top: 1px solid var(--border); }
+    .stat { padding: 0.7rem 1.25rem; border-bottom: 1px solid var(--border); border-right: 1px solid var(--border); }
     .stat:nth-child(even) { border-right: none; }
     .stat:nth-last-child(-n+2) { border-bottom: none; }
-    .stat-label { font-size: 0.6rem; letter-spacing: 1px; text-transform: uppercase; color: #83937C; }
-    .stat-value { font-weight: 600; color: #E7EBDF; font-size: 9pt; margin-top: 0.1rem; }
+    .stat-label { font-size: 0.6rem; letter-spacing: 1px; text-transform: uppercase; color: var(--muted); }
+    .stat-value { font-weight: 600; color: var(--head); font-size: 9pt; margin-top: 0.1rem; }
     .footer { margin-top: 0.75rem; }
-    a { color: #A9BE9C; text-decoration: none; }
+    a { color: var(--accent); text-decoration: none; }
     @media (max-width: 600px) { h1 { font-size: 1.75rem; } .stats-bar { gap: 1rem; } .page-header { flex-direction: column; align-items: flex-start; gap: 0.2rem; } }
 ${HUB_MAP_CSS}
   </style>
@@ -274,7 +276,7 @@ ${HUB_MAP_CSS}
       </div>
     </details>
     <div class="footer">
-      <a href="/contact" style="display: inline-block; margin-top: 0.75rem; padding: 0.5rem 1rem; background: #1B2A20; color: #C9D3C2; border: 1px solid #2E4433; border-radius: 6px; text-decoration: none; font-size: 0.75rem;">Contact</a>
+      <a href="/contact" style="display: inline-block; margin-top: 0.75rem; padding: 0.5rem 1rem; background: var(--card); color: var(--text); border: 1px solid var(--border); border-radius: 6px; text-decoration: none; font-size: 0.75rem;">Contact</a>
     </div>
   </div>
 </body>
@@ -543,7 +545,7 @@ app.get('/api/run', async (req, res) => {
           : "No changes detected.";
 
     const html =
-      '<!DOCTYPE html><html><head><meta charset="utf-8"><meta http-equiv="refresh" content="3;url=/api/history"><style>body{font-family:sans-serif;background:#121A15;color:#C3D6B8;display:flex;align-items:center;justify-content:center;min-height:100vh;margin:0;}.container{text-align:center;padding:2rem;}.success{color:#6B7A2A;font-size:3rem;margin-bottom:1rem;}h1{color:#E7EBDF;margin-bottom:1rem;}p{color:#FFFFFF;}</style></head><body><div class="container"><div class="success">✓</div><h1>Workflow Complete</h1><p>' +
+      '<!DOCTYPE html><html><head><meta charset="utf-8"><meta http-equiv="refresh" content="3;url=/api/history"><style>body{font-family:sans-serif;background:#092530;color:#C9BD8A;display:flex;align-items:center;justify-content:center;min-height:100vh;margin:0;}.container{text-align:center;padding:2rem;}.success{color:#6B7A2A;font-size:3rem;margin-bottom:1rem;}h1{color:#F2EBD3;margin-bottom:1rem;}p{color:#FFFFFF;}</style></head><body><div class="container"><div class="success">✓</div><h1>Workflow Complete</h1><p>' +
       message +
       "</p><p>Redirecting to Change Log...</p></div></body></html>";
 
@@ -551,7 +553,7 @@ app.get('/api/run', async (req, res) => {
   } catch (error) {
     console.error('Error in /api/run:', error);
     const html =
-      '<!DOCTYPE html><html><head><meta charset="utf-8"><style>body{font-family:sans-serif;background:#121A15;color:#C3D6B8;display:flex;align-items:center;justify-content:center;min-height:100vh;margin:0;}.container{text-align:center;padding:2rem;}.error{color:#ef4444;font-size:3rem;margin-bottom:1rem;}h1{color:#ef4444;margin-bottom:1rem;}p{color:#FFFFFF;}a{color:#C3D6B8;}</style></head><body><div class="container"><div class="error">✗</div><h1>Error</h1><p>' +
+      '<!DOCTYPE html><html><head><meta charset="utf-8"><style>body{font-family:sans-serif;background:#092530;color:#C9BD8A;display:flex;align-items:center;justify-content:center;min-height:100vh;margin:0;}.container{text-align:center;padding:2rem;}.error{color:#ef4444;font-size:3rem;margin-bottom:1rem;}h1{color:#ef4444;margin-bottom:1rem;}p{color:#FFFFFF;}a{color:#C9BD8A;}</style></head><body><div class="container"><div class="error">✗</div><h1>Error</h1><p>' +
       (error.message || "Unknown error") +
       '</p><p><a href="/api/status">Back to Status</a></p></div></body></html>';
     res.send(html);
@@ -675,48 +677,49 @@ ${gaHead()}
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;700&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
   <style>
+    ${THEME_VARS}
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
     html, body { overflow-x: hidden; width: 100%; }
-    body { font-family: 'Inter', Arial, sans-serif; font-size: 8pt; background: #121A15; color: #C9D3C2; min-height: 100vh; }
+    body { font-family: 'Inter', Arial, sans-serif; font-size: 8pt; background: var(--bg); color: var(--text); min-height: 100vh; }
     .page-header { display: flex; justify-content: space-between; align-items: center; }
-    .county-label { font-size: 0.7rem; font-weight: 600; letter-spacing: 2px; text-transform: uppercase; color: #A9BE9C; }
-    .public-records { font-size: 0.7rem; font-weight: 500; letter-spacing: 1px; text-transform: uppercase; color: #83937C; }
-    h1 { font-family: 'Playfair Display', Georgia, serif; font-size: 2.5rem; font-weight: 700; color: #E7EBDF; letter-spacing: -0.5px; margin: 0.75rem 0 1rem; }
+    .county-label { font-size: 0.7rem; font-weight: 600; letter-spacing: 2px; text-transform: uppercase; color: var(--accent); }
+    .public-records { font-size: 0.7rem; font-weight: 500; letter-spacing: 1px; text-transform: uppercase; color: var(--muted); }
+    h1 { font-family: 'Playfair Display', Georgia, serif; font-size: 2.5rem; font-weight: 700; color: var(--head); letter-spacing: -0.5px; margin: 0.75rem 0 1rem; }
     .nav-bar { display: flex; gap: 0.5rem; margin-bottom: 1.25rem; }
-    .nav-btn { padding: 0.5rem 1rem; background: #1B2A20; color: #C9D3C2; border-radius: 6px; text-decoration: none; font-weight: 600; font-size: 8pt; border: 1px solid #2E4433; transition: background 0.15s; }
-    .nav-btn:hover { background: #547048; color: #E7EBDF; }
+    .nav-btn { padding: 0.5rem 1rem; background: var(--card); color: var(--text); border-radius: 6px; text-decoration: none; font-weight: 600; font-size: 8pt; border: 1px solid var(--border); transition: background 0.15s; }
+    .nav-btn:hover { background: var(--hover); color: var(--head); }
     .container { max-width: 900px; margin: 0 auto; padding: 1.5rem 2rem 3rem; }
     .date-group { margin-bottom: 2rem; }
-    .date-label { font-size: 0.7rem; font-weight: 600; letter-spacing: 2px; text-transform: uppercase; color: #A9BE9C; padding-bottom: 0.5rem; border-bottom: 1px solid #2E4433; margin-bottom: 0.75rem; }
+    .date-label { font-size: 0.7rem; font-weight: 600; letter-spacing: 2px; text-transform: uppercase; color: var(--accent); padding-bottom: 0.5rem; border-bottom: 1px solid var(--border); margin-bottom: 0.75rem; }
     .section-label { font-size: 0.65rem; font-weight: 700; letter-spacing: 2px; text-transform: uppercase; margin: 0.75rem 0 0.4rem; }
-    .section-label.booked { color: #A9BE9C; }
-    .section-label.released { color: #C3D6B8; }
-    details.inmate-row { background: #1B2A20; border-radius: 6px; margin-bottom: 0.35rem; border: 1px solid #2E4433; border-left-width: 4px; overflow: hidden; }
-    details.inmate-row.row-booked { border-left-color: #2E4433; }
-    details.inmate-row.row-released { border-left-color: #C3D6B8; }
+    .section-label.booked { color: var(--accent); }
+    .section-label.released { color: var(--released); }
+    details.inmate-row { background: var(--card); border-radius: 6px; margin-bottom: 0.35rem; border: 1px solid var(--border); border-left-width: 4px; overflow: hidden; }
+    details.inmate-row.row-booked { border-left-color: var(--border); }
+    details.inmate-row.row-released { border-left-color: var(--released); }
     details.inmate-row > summary { list-style: none; display: flex; align-items: center; gap: 0.6rem; padding: 0.7rem 1rem; cursor: pointer; user-select: none; }
     details.inmate-row > summary::-webkit-details-marker { display: none; }
-    .inmate-name { font-family: 'Fake Receipt', 'Courier New', monospace; font-size: 9.5pt; font-weight: 700; color: #E7EBDF; text-transform: uppercase; letter-spacing: 0.5px; flex: 1; }
-    .inmate-time { color: #83937C; font-size: 7pt; white-space: nowrap; }
-    .inmate-held { color: #C3D6B8; font-size: 7pt; font-weight: 600; white-space: nowrap; }
+    .inmate-name { font-family: 'Fake Receipt', 'Courier New', monospace; font-size: 9.5pt; font-weight: 700; color: var(--head); text-transform: uppercase; letter-spacing: 0.5px; flex: 1; }
+    .inmate-time { color: var(--muted); font-size: 7pt; white-space: nowrap; }
+    .inmate-held { color: var(--released); font-size: 7pt; font-weight: 600; white-space: nowrap; }
     .status-badge { font-size: 0.58rem; font-weight: 700; letter-spacing: 1.5px; text-transform: uppercase; padding: 0.18rem 0.45rem; border-radius: 3px; white-space: nowrap; flex-shrink: 0; }
     /* Booked = dark solid, Released = light solid, so the two are
        distinguishable at a glance without reading the text. */
-    .badge-booked { background: #2E4433; color: #E7EBDF; border: 1px solid #3E5C3A; }
-    .badge-released { background: #C3D6B8; color: #121A15; border: 1px solid #A9BE9C; }
-    .badge-warrant { background: #5C3A1A; color: #E7EBDF; border: 1px solid #7C4A24; }
-    .chevron { color: #83937C; font-size: 0.65rem; flex-shrink: 0; transition: transform 0.15s; }
+    .badge-booked { background: var(--border); color: var(--head); border: 1px solid var(--hover); }
+    .badge-released { background: var(--released); color: var(--bg); border: 1px solid var(--accent); }
+    .badge-warrant { background: #5C3A1A; color: var(--head); border: 1px solid #7C4A24; }
+    .chevron { color: var(--muted); font-size: 0.65rem; flex-shrink: 0; transition: transform 0.15s; }
     details.inmate-row[open] .chevron { transform: rotate(180deg); }
-    .inmate-details { border-top: 1px solid #2E4433; padding: 0.5rem 1rem 0.65rem; }
-    .detail-row { display: flex; align-items: baseline; gap: 0.75rem; padding: 0.3rem 0; border-bottom: 1px solid #2E4433; }
+    .inmate-details { border-top: 1px solid var(--border); padding: 0.5rem 1rem 0.65rem; }
+    .detail-row { display: flex; align-items: baseline; gap: 0.75rem; padding: 0.3rem 0; border-bottom: 1px solid var(--border); }
     .detail-row:last-child { border-bottom: none; }
-    .detail-label { font-size: 0.6rem; font-weight: 600; letter-spacing: 1px; text-transform: uppercase; color: #83937C; min-width: 55px; flex-shrink: 0; }
-    .detail-value { color: #A9BE9C; font-size: 7.5pt; line-height: 1.5; }
-    .no-data { color: #83937C; text-align: center; padding: 3rem; }
-    .search-input { width: 100%; padding: 0.7rem 1rem; background: #1B2A20; color: #E7EBDF; border: 1px solid #2E4433; border-radius: 6px; font-size: 9pt; font-family: 'Inter', Arial, sans-serif; outline: none; margin-bottom: 1.25rem; }
-    .search-input::placeholder { color: #83937C; }
-    .search-input:focus { border-color: #A9BE9C; }
-    a { color: #A9BE9C; text-decoration: none; }
+    .detail-label { font-size: 0.6rem; font-weight: 600; letter-spacing: 1px; text-transform: uppercase; color: var(--muted); min-width: 55px; flex-shrink: 0; }
+    .detail-value { color: var(--accent); font-size: 7.5pt; line-height: 1.5; }
+    .no-data { color: var(--muted); text-align: center; padding: 3rem; }
+    .search-input { width: 100%; padding: 0.7rem 1rem; background: var(--card); color: var(--head); border: 1px solid var(--border); border-radius: 6px; font-size: 9pt; font-family: 'Inter', Arial, sans-serif; outline: none; margin-bottom: 1.25rem; }
+    .search-input::placeholder { color: var(--muted); }
+    .search-input:focus { border-color: var(--accent); }
+    a { color: var(--accent); text-decoration: none; }
     @media (max-width: 600px) { .page-header { flex-direction: column; align-items: flex-start; gap: 0.2rem; } h1 { font-size: 1.75rem; } .container { padding: 0 1rem 3rem; } }
     /* On phones the one-line row (name, held, time, badges) is wider than the
        screen and the card's overflow:hidden clips the badge. Stack it instead:
@@ -1167,7 +1170,6 @@ const avgStayDays = stayCount > 0 ? Math.round((totalStayHours / stayCount) / 24
   }
 });
 
-const PIE_CHART_COLORS = ['#A9BE9C', '#3E5C3A', '#D7DBD3', '#547048', '#9CA98C', '#2E4433', '#C3D6B8', '#4F6B4A', '#83937C', '#6B8F5C'];
 
 function polarToCartesian(cx, cy, r, angleDeg) {
   const angleRad = (angleDeg - 90) * Math.PI / 180;
@@ -1199,7 +1201,7 @@ function renderPieChart(slices, size = 220) {
   }
 
   const legend = slices.map(s => `
-    <div style="display:flex; align-items:center; gap:0.5rem; font-size:0.8rem; color:#C9D3C2;">
+    <div style="display:flex; align-items:center; gap:0.5rem; font-size:0.8rem; color:var(--text);">
       <span style="display:inline-block; width:12px; height:12px; border-radius:3px; background:${s.color}; flex-shrink:0;"></span>
       <span>${s.label} — ${((s.value / total) * 100).toFixed(1)}%</span>
     </div>
@@ -1228,13 +1230,14 @@ ${gaHead()}
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,600;0,700;1,400&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
   <style>
+    ${THEME_VARS}
     @font-face { font-family: 'Fake Receipt'; src: url('/fonts/FakeReceipt.otf') format('opentype'); font-weight: normal; font-style: normal; }
     * { box-sizing: border-box; margin: 0; padding: 0; }
     body {
       font-family: 'Inter', Arial, sans-serif;
       font-size: 9pt;
-      background: #121A15;
-      color: #C9D3C2;
+      background: var(--bg);
+      color: var(--text);
       min-height: 100vh;
       padding: 2rem;
     }
@@ -1243,15 +1246,15 @@ ${gaHead()}
       font-family: 'Playfair Display', Georgia, serif;
       font-size: 2.5rem;
       margin-bottom: 0.5rem;
-      color: #E7EBDF;
+      color: var(--head);
       font-weight: 700;
       letter-spacing: -0.5px;
     }
-    .subtitle { color: #83937C; margin-bottom: 2rem; }
+    .subtitle { color: var(--muted); margin-bottom: 2rem; }
     .back-link {
       display: inline-block;
       margin-bottom: 1.5rem;
-      color: #A9BE9C;
+      color: var(--accent);
       text-decoration: none;
     }
     .back-link:hover { text-decoration: underline; }
@@ -1263,38 +1266,38 @@ ${gaHead()}
       margin-bottom: 2rem;
     }
     .stat-card {
-      background: #1B2A20;
+      background: var(--card);
       border-radius: 12px;
       padding: 1.5rem;
-      border-left: 4px solid #547048;
+      border-left: 4px solid var(--hover);
     }
-    .stat-card.purple { border-left-color: #A9BE9C; }
-    .stat-card.blue { border-left-color: #547048; }
-    .stat-card.orange { border-left-color: #C9D3C2; }
+    .stat-card.purple { border-left-color: var(--accent); }
+    .stat-card.blue { border-left-color: var(--hover); }
+    .stat-card.orange { border-left-color: var(--text); }
 
     .stat-value {
       font-size: 2.5rem;
       font-weight: bold;
-      color: #C9D3C2;
+      color: var(--text);
       margin-bottom: 0.25rem;
       font-family: 'Playfair Display', Georgia, serif;
     }
     .stat-label {
-      color: #83937C;
+      color: var(--muted);
       font-size: 0.875rem;
       text-transform: uppercase;
       letter-spacing: 0.5px;
     }
 
     .chart-container {
-      background: #1B2A20;
+      background: var(--card);
       border-radius: 12px;
       padding: 1.5rem;
       margin-bottom: 1rem;
     }
     .chart-title {
       font-family: 'Playfair Display', Georgia, serif;
-      color: #E7EBDF;
+      color: var(--head);
       font-size: 1.2rem;
       font-weight: 600;
       margin-bottom: 1rem;
@@ -1308,20 +1311,20 @@ ${gaHead()}
     }
     .bar-label {
       min-width: 200px;
-      color: #C9D3C2;
+      color: var(--text);
       font-size: 0.8rem;
       overflow: hidden;
       text-overflow: ellipsis;
       white-space: nowrap;
     }
     .bar-fill {
-      background: linear-gradient(90deg, #547048, #A9BE9C);
+      background: linear-gradient(90deg, var(--hover), var(--accent));
       height: 24px;
       border-radius: 4px;
       display: flex;
       align-items: center;
       padding: 0 0.5rem;
-      color: #E7EBDF;
+      color: var(--head);
       font-weight: bold;
       font-size: 0.75rem;
       min-width: 30px;
@@ -1343,18 +1346,18 @@ ${gaHead()}
     }
     .day-bar-fill {
       width: 100%;
-      background: linear-gradient(180deg, #547048, #A9BE9C);
+      background: linear-gradient(180deg, var(--hover), var(--accent));
       border-radius: 4px 4px 0 0;
       display: flex;
       align-items: flex-end;
       justify-content: center;
-      color: #E7EBDF;
+      color: var(--head);
       font-size: 0.7rem;
       font-weight: bold;
       padding-bottom: 0.25rem;
     }
     .day-label {
-      color: #83937C;
+      color: var(--muted);
       font-size: 0.75rem;
       margin-top: 0.5rem;
     }
@@ -1366,7 +1369,7 @@ ${gaHead()}
       margin-top: 1rem;
     }
     .release-type {
-      background: #141F17;
+      background: var(--card-deep);
       padding: 1rem;
       border-radius: 8px;
       text-align: center;
@@ -1374,11 +1377,11 @@ ${gaHead()}
     .release-type-count {
       font-size: 1.5rem;
       font-weight: bold;
-      color: #C9D3C2;
+      color: var(--text);
       font-family: 'Playfair Display', Georgia, serif;
     }
     .release-type-label {
-      color: #83937C;
+      color: var(--muted);
       font-size: 0.75rem;
       margin-top: 0.25rem;
     }
@@ -1392,13 +1395,13 @@ ${gaHead()}
     }
     .time-bar {
       flex: 1;
-      background: linear-gradient(180deg, #547048, #A9BE9C);
+      background: linear-gradient(180deg, var(--hover), var(--accent));
       border-radius: 2px 2px 0 0;
       position: relative;
       min-width: 8px;
     }
     .time-bar:hover {
-      background: linear-gradient(180deg, #A9BE9C, #C9D3C2);
+      background: linear-gradient(180deg, var(--accent), var(--text));
     }
   </style>
 </head>
@@ -1453,7 +1456,7 @@ ${gaHead()}
             </div>
           </div>
         `).join('')}
-        ${stats.commonCharges.length === 0 ? '<p style="color: #83937C;">No charge data available yet</p>' : ''}
+        ${stats.commonCharges.length === 0 ? '<p style="color: var(--muted);">No charge data available yet</p>' : ''}
       </div>
     </div>
     
@@ -1488,7 +1491,7 @@ ${gaHead()}
     ${releaseTypeEntries.map(([code, count]) => `
       <div class="release-type">
         <div class="release-type-count">${count}</div>
-        <div style="font-size: 1rem; font-weight: bold; color: #C3D6B8; margin: 0.25rem 0;">${code}</div>
+        <div style="font-size: 1rem; font-weight: bold; color: var(--released); margin: 0.25rem 0;">${code}</div>
         <div class="release-type-label">${RELEASE_TYPE_NAMES[code] || code}</div>
       </div>
     `).join('')}
@@ -1501,21 +1504,21 @@ ${gaHead()}
     <div class="chart-container">
       <div class="chart-title">Time Served Statistics (from PDF Data)</div>
       <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 1rem; margin-top: 1rem;">
-        <div style="background: #141F17; padding: 1rem; border-radius: 8px; text-align: center;">
-          <div style="font-size: 1.5rem; font-weight: bold; color: #C9D3C2; font-family: 'Playfair Display', Georgia, serif;">${formatMinutes(stats.avgTimeServedMins)}</div>
-          <div style="color: #83937C; font-size: 0.75rem; margin-top: 0.25rem;">Mean Time Served</div>
+        <div style="background: var(--card-deep); padding: 1rem; border-radius: 8px; text-align: center;">
+          <div style="font-size: 1.5rem; font-weight: bold; color: var(--text); font-family: 'Playfair Display', Georgia, serif;">${formatMinutes(stats.avgTimeServedMins)}</div>
+          <div style="color: var(--muted); font-size: 0.75rem; margin-top: 0.25rem;">Mean Time Served</div>
         </div>
-        <div style="background: #141F17; padding: 1rem; border-radius: 8px; text-align: center;">
-          <div style="font-size: 1.5rem; font-weight: bold; color: #C9D3C2; font-family: 'Playfair Display', Georgia, serif;">${formatMinutes(stats.medianTimeServedMins)}</div>
-          <div style="color: #83937C; font-size: 0.75rem; margin-top: 0.25rem;">Median Time Served</div>
+        <div style="background: var(--card-deep); padding: 1rem; border-radius: 8px; text-align: center;">
+          <div style="font-size: 1.5rem; font-weight: bold; color: var(--text); font-family: 'Playfair Display', Georgia, serif;">${formatMinutes(stats.medianTimeServedMins)}</div>
+          <div style="color: var(--muted); font-size: 0.75rem; margin-top: 0.25rem;">Median Time Served</div>
         </div>
-        <div style="background: #141F17; padding: 1rem; border-radius: 8px; text-align: center;">
-          <div style="font-size: 1.5rem; font-weight: bold; color: #C9D3C2; font-family: 'Playfair Display', Georgia, serif;">${formatMinutes(stats.minTimeServedMins)}</div>
-          <div style="color: #83937C; font-size: 0.75rem; margin-top: 0.25rem;">Shortest Stay</div>
+        <div style="background: var(--card-deep); padding: 1rem; border-radius: 8px; text-align: center;">
+          <div style="font-size: 1.5rem; font-weight: bold; color: var(--text); font-family: 'Playfair Display', Georgia, serif;">${formatMinutes(stats.minTimeServedMins)}</div>
+          <div style="color: var(--muted); font-size: 0.75rem; margin-top: 0.25rem;">Shortest Stay</div>
         </div>
-        <div style="background: #141F17; padding: 1rem; border-radius: 8px; text-align: center;">
-          <div style="font-size: 1.5rem; font-weight: bold; color: #C9D3C2; font-family: 'Playfair Display', Georgia, serif;">${stats.longestCurrentMins > 0 ? formatMinutes(stats.longestCurrentMins) : 'N/A'}</div>
-          <div style="color: #83937C; font-size: 0.75rem; margin-top: 0.25rem;">Longest Current Stay</div>
+        <div style="background: var(--card-deep); padding: 1rem; border-radius: 8px; text-align: center;">
+          <div style="font-size: 1.5rem; font-weight: bold; color: var(--text); font-family: 'Playfair Display', Georgia, serif;">${stats.longestCurrentMins > 0 ? formatMinutes(stats.longestCurrentMins) : 'N/A'}</div>
+          <div style="color: var(--muted); font-size: 0.75rem; margin-top: 0.25rem;">Longest Current Stay</div>
         </div>
       </div>
     </div>` : ''}
@@ -1530,7 +1533,7 @@ ${gaHead()}
           return stats.avgBailByCharge.map(item => `
             <div class="bar-item">
               <div class="bar-label">${item.charge}</div>
-              <div class="bar-fill" style="width: ${(item.avgBail / maxBail) * 300}px; background: linear-gradient(90deg, #83937C, #C3D6B8);">
+              <div class="bar-fill" style="width: ${(item.avgBail / maxBail) * 300}px; background: linear-gradient(90deg, var(--muted), var(--released));">
                 $${item.avgBail.toLocaleString()}
               </div>
             </div>
@@ -2001,18 +2004,18 @@ function getDeepStatsHTML(d) {
   function dayBar(days, max) {
     return Object.entries(days).map(([day, count]) => `
       <div style="display:flex;align-items:center;gap:0.5rem;margin-bottom:4px;">
-        <span style="min-width:32px;color:#C9D3C2;font-size:0.75rem;">${day}</span>
-        <div style="background:linear-gradient(90deg,#547048,#A9BE9C);height:18px;width:${Math.round((count/max)*260)}px;border-radius:3px;min-width:2px;"></div>
-        <span style="color:#C9D3C2;font-size:0.75rem;">${count}</span>
+        <span style="min-width:32px;color:var(--text);font-size:0.75rem;">${day}</span>
+        <div style="background:linear-gradient(90deg,var(--hover),var(--accent));height:18px;width:${Math.round((count/max)*260)}px;border-radius:3px;min-width:2px;"></div>
+        <span style="color:var(--text);font-size:0.75rem;">${count}</span>
       </div>`).join('');
   }
 
   function hourBar(hours, max) {
     return hours.map((count, hr) => `
       <div style="display:flex;align-items:center;gap:0.5rem;margin-bottom:2px;">
-        <span style="min-width:40px;color:#A9BE9C;font-size:0.7rem;">${String(hr).padStart(2,'0')}:00</span>
-        <div style="background:linear-gradient(90deg,#141F17,#547048);height:14px;width:${Math.round((count/max)*260)}px;border-radius:2px;min-width:2px;"></div>
-        <span style="color:#A9BE9C;font-size:0.7rem;">${count}</span>
+        <span style="min-width:40px;color:var(--accent);font-size:0.7rem;">${String(hr).padStart(2,'0')}:00</span>
+        <div style="background:linear-gradient(90deg,var(--card-deep),var(--hover));height:14px;width:${Math.round((count/max)*260)}px;border-radius:2px;min-width:2px;"></div>
+        <span style="color:var(--accent);font-size:0.7rem;">${count}</span>
       </div>`).join('');
   }
 
@@ -2028,49 +2031,50 @@ ${gaHead()}
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,600;0,700;1,400&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
   <style>
+    ${THEME_VARS}
     *{box-sizing:border-box;margin:0;padding:0}
-    body{font-family:'Inter',Arial,sans-serif;font-size:8.5pt;background:#121A15;color:#C9D3C2;padding:2rem;min-height:100vh}
+    body{font-family:'Inter',Arial,sans-serif;font-size:8.5pt;background:var(--bg);color:var(--text);padding:2rem;min-height:100vh}
     .wrap{max-width:1100px;margin:0 auto}
-    h1{font-family:'Playfair Display',Georgia,serif;font-size:1.6rem;color:#E7EBDF;margin-bottom:0.25rem;font-weight:700}
-    h2{font-family:'Playfair Display',Georgia,serif;font-size:0.95rem;color:#A9BE9C;font-weight:600;margin:2rem 0 0.75rem;border-bottom:1px solid #2E4433;padding-bottom:0.4rem}
-    a{color:#A9BE9C;text-decoration:none}
-    .subtitle{color:#83937C;font-size:0.75rem;margin-bottom:2rem}
+    h1{font-family:'Playfair Display',Georgia,serif;font-size:1.6rem;color:var(--head);margin-bottom:0.25rem;font-weight:700}
+    h2{font-family:'Playfair Display',Georgia,serif;font-size:0.95rem;color:var(--accent);font-weight:600;margin:2rem 0 0.75rem;border-bottom:1px solid var(--border);padding-bottom:0.4rem}
+    a{color:var(--accent);text-decoration:none}
+    .subtitle{color:var(--muted);font-size:0.75rem;margin-bottom:2rem}
     table{width:100%;border-collapse:collapse;font-size:0.8rem;margin-top:0.5rem}
-    th{color:#83937C;text-align:left;padding:0.4rem 0.5rem;border-bottom:1px solid #2E4433;font-weight:normal;text-transform:uppercase;font-size:0.7rem;letter-spacing:0.5px}
-    td{padding:0.35rem 0.5rem;border-bottom:1px solid #141F17;color:#C9D3C2;vertical-align:top}
-    tr:hover td{background:#1B2A20}
-    .val{color:#E7EBDF;font-weight:bold;font-family:'Fake Receipt','Courier New',monospace}
-    .dim{color:#83937C}
+    th{color:var(--muted);text-align:left;padding:0.4rem 0.5rem;border-bottom:1px solid var(--border);font-weight:normal;text-transform:uppercase;font-size:0.7rem;letter-spacing:0.5px}
+    td{padding:0.35rem 0.5rem;border-bottom:1px solid var(--card-deep);color:var(--text);vertical-align:top}
+    tr:hover td{background:var(--card)}
+    .val{color:var(--head);font-weight:bold;font-family:'Fake Receipt','Courier New',monospace}
+    .dim{color:var(--muted)}
     .cards{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:0.75rem;margin-top:0.75rem}
-    .card{background:#1B2A20;border-radius:8px;padding:1rem;border-left:3px solid #547048}
-    .card .v{font-size:1.6rem;font-weight:bold;color:#C9D3C2;font-family:'Playfair Display',Georgia,serif}
-    .card .l{color:#83937C;font-size:0.7rem;text-transform:uppercase;letter-spacing:0.5px;margin-top:0.15rem}
+    .card{background:var(--card);border-radius:8px;padding:1rem;border-left:3px solid var(--hover)}
+    .card .v{font-size:1.6rem;font-weight:bold;color:var(--text);font-family:'Playfair Display',Georgia,serif}
+    .card .l{color:var(--muted);font-size:0.7rem;text-transform:uppercase;letter-spacing:0.5px;margin-top:0.15rem}
     .two-col{display:grid;grid-template-columns:1fr 1fr;gap:1.5rem}
     @media(max-width:700px){.two-col{grid-template-columns:1fr}}
-    .chip{display:inline-block;background:#141F17;border:1px solid #2E4433;padding:1px 6px;border-radius:3px;font-size:0.7rem;margin:1px;color:#C9D3C2}
+    .chip{display:inline-block;background:var(--card-deep);border:1px solid var(--border);padding:1px 6px;border-radius:3px;font-size:0.7rem;margin:1px;color:var(--text)}
     .charge-type-list{display:flex;flex-direction:column;gap:0.5rem;margin-top:0.5rem}
     .charge-type-row{display:grid;grid-template-columns:220px 1fr 100px;align-items:center;gap:0.75rem}
     @media(max-width:700px){.charge-type-row{grid-template-columns:130px 1fr 80px;font-size:0.75rem}}
-    .charge-type-label{color:#C9D3C2;font-size:0.8rem}
-    .charge-type-bar-track{background:#141F17;border-radius:4px;height:14px;overflow:hidden}
-    .charge-type-bar-fill{background:linear-gradient(90deg,#547048,#A9BE9C);height:100%;border-radius:4px}
-    .charge-type-pct{color:#E7EBDF;font-weight:bold;font-size:0.8rem;text-align:right}
+    .charge-type-label{color:var(--text);font-size:0.8rem}
+    .charge-type-bar-track{background:var(--card-deep);border-radius:4px;height:14px;overflow:hidden}
+    .charge-type-bar-fill{background:linear-gradient(90deg,var(--hover),var(--accent));height:100%;border-radius:4px}
+    .charge-type-pct{color:var(--head);font-weight:bold;font-size:0.8rem;text-align:right}
     th.sortable{cursor:pointer;user-select:none}
-    th.sortable:hover{color:#C9D3C2}
+    th.sortable:hover{color:var(--text)}
     th.sortable::after{content:'';display:inline-block;width:0.6em}
-    th.sorted-asc::after{content:'▴';display:inline-block;width:0.6em;color:#A9BE9C}
-    th.sorted-desc::after{content:'▾';display:inline-block;width:0.6em;color:#A9BE9C}
+    th.sorted-asc::after{content:'▴';display:inline-block;width:0.6em;color:var(--accent)}
+    th.sorted-desc::after{content:'▾';display:inline-block;width:0.6em;color:var(--accent)}
   </style>
 </head>
 <body>
 <div class="wrap">
-  <a href="/api/status" style="font-size:0.75rem;color:#A9BE9C;">← status</a>
+  <a href="/api/status" style="font-size:0.75rem;color:var(--accent);">← status</a>
   <h1 style="margin-top:0.5rem;">Deep Analytics</h1>
   <p class="subtitle">Mason County Jail · ${total} releases in history · Unlisted</p>
 
   <h2>Recidivism</h2>
   <div class="cards">
-    <div class="card" style="border-left-color:#A9BE9C">
+    <div class="card" style="border-left-color:var(--accent)">
       <div class="v">${d.recidivismRate}%</div>
       <div class="l">Recidivism Rate</div>
     </div>
@@ -2144,7 +2148,7 @@ ${gaHead()}
     ${d.maxBailEntry ? `<div class="card" style="border-left-color:#5C3A1A">
       <div class="v" style="font-size:1.2rem;">${$(d.maxBailEntry.bailAmt || parseFloat((d.maxBailEntry.bail||'$0').replace(/[$,]/g,'')))}</div>
       <div class="l">Most Expensive Bail Posted Ever</div>
-      <div style="margin-top:0.4rem;font-size:0.7rem;color:#C9D3C2;font-family:'Fake Receipt','Courier New',monospace;">${d.maxBailEntry.name}</div>
+      <div style="margin-top:0.4rem;font-size:0.7rem;color:var(--text);font-family:'Fake Receipt','Courier New',monospace;">${d.maxBailEntry.name}</div>
     </div>` : ''}
   </div>
 
@@ -2162,7 +2166,7 @@ ${gaHead()}
     ${d.top10Bail.map((e, i) => `<tr data-rank="${i+1}" data-name="${e.name.toLowerCase().replace(/"/g, '&quot;')}" data-bail="${e.bailAmt}" data-type="${(e.releaseType || '').toLowerCase()}" data-released="${e.releaseDateTime || ''}" data-charges="${e.charges.join(', ').toLowerCase().replace(/"/g, '&quot;')}">
       <td class="dim">${i+1}</td>
       <td class="val">${e.name}</td>
-      <td style="color:#C3D6B8;font-weight:bold;">${$(e.bailAmt)}</td>
+      <td style="color:var(--released);font-weight:bold;">${$(e.bailAmt)}</td>
       <td><span class="chip">${e.releaseType || '?'}</span></td>
       <td class="dim">${e.releaseDateTime ? formatShortDateTime(parseBookingDate(e.releaseDateTime)) || '—' : '—'}</td>
       <td style="font-size:0.7rem;">${e.charges.length ? e.charges.join(', ') : '<span class="dim">—</span>'}</td>
@@ -2187,7 +2191,7 @@ ${gaHead()}
       <td class="val">${b.label}</td>
       <td class="dim">${b.count.toLocaleString()}</td>
       <td>${formatMinutes(b.p25Mins)}</td>
-      <td style="color:#C3D6B8;font-weight:bold;">${formatMinutes(b.medianMins)}</td>
+      <td style="color:var(--released);font-weight:bold;">${formatMinutes(b.medianMins)}</td>
       <td>${formatMinutes(b.p75Mins)}</td>
       <td>${b.count ? b.within24hPct + '%' : '—'}</td>
     </tr>`).join('')}
@@ -2227,7 +2231,7 @@ ${gaHead()}
     ${d.longHoldsLowBail.map((e, i) => `<tr data-rank="${i+1}" data-name="${e.name.toLowerCase().replace(/"/g, '&quot;')}" data-bail="${e.bailAmt}" data-held="${e.heldMins}" data-charges="${e.charges.join(', ').toLowerCase().replace(/"/g, '&quot;')}">
       <td class="dim">${i+1}</td>
       <td class="val">${e.name}</td>
-      <td style="color:#C3D6B8;font-weight:bold;">${$(e.bailAmt)}</td>
+      <td style="color:var(--released);font-weight:bold;">${$(e.bailAmt)}</td>
       <td class="val">${formatMinutes(e.heldMins)}</td>
       <td style="font-size:0.7rem;">${e.charges.length ? e.charges.join(', ') : '<span class="dim">—</span>'}</td>
     </tr>`).join('')}
@@ -2271,7 +2275,7 @@ ${gaHead()}
     ${bailByChargeArr.map(r => `<tr data-charge="${r.charge.toLowerCase().replace(/"/g, '&quot;')}" data-avg="${r.avg}" data-max="${r.max}" data-posted="${r.postedCount}">
       <td>${r.charge}</td>
       <td class="val">${$(r.avg)}</td>
-      <td style="color:#C3D6B8;">${$(r.max)}</td>
+      <td style="color:var(--released);">${$(r.max)}</td>
       <td class="dim">${r.postedCount} / ${r.totalCount}</td>
     </tr>`).join('')}
     ${bailByChargeArr.length === 0 ? '<tr><td colspan="4" class="dim">No data yet</td></tr>' : ''}
@@ -2333,23 +2337,23 @@ ${gaHead()}
     <div class="card">
       <div class="v">${d.under24 + d.over24 > 0 ? pct(d.under24, d.under24+d.over24) : '—'}</div>
       <div class="l">Released in &lt;24 Hours</div>
-      <div style="margin-top:0.4rem;font-size:0.7rem;color:#83937C;">${d.under24} under / ${d.over24} over</div>
+      <div style="margin-top:0.4rem;font-size:0.7rem;color:var(--muted);">${d.under24} under / ${d.over24} over</div>
     </div>
     ${d.histMinEntry ? `<div class="card" style="border-left-color:#0B7C5C">
       <div class="v" style="font-size:1.2rem;">${formatMinutes(d.histMinMins)}</div>
       <div class="l">Shortest Stay Ever</div>
-      <div style="margin-top:0.4rem;font-size:0.7rem;color:#C9D3C2;font-family:'Fake Receipt','Courier New',monospace;">${d.histMinEntry.name}</div>
+      <div style="margin-top:0.4rem;font-size:0.7rem;color:var(--text);font-family:'Fake Receipt','Courier New',monospace;">${d.histMinEntry.name}</div>
     </div>` : ''}
     ${d.histMaxEntry ? `<div class="card" style="border-left-color:#7C1A1A">
       <div class="v" style="font-size:1.2rem;">${formatMinutes(d.histMaxMins)}</div>
       <div class="l">Historical Longest Stay</div>
-      <div style="margin-top:0.4rem;font-size:0.7rem;color:#C9D3C2;font-family:'Fake Receipt','Courier New',monospace;">${d.histMaxEntry.name}</div>
+      <div style="margin-top:0.4rem;font-size:0.7rem;color:var(--text);font-family:'Fake Receipt','Courier New',monospace;">${d.histMaxEntry.name}</div>
     </div>` : ''}
     ${d.currentLongest ? `<div class="card" style="border-left-color:#5C3A1A">
       <div class="v" style="font-size:1.2rem;">${d.currentLongest.days}d</div>
       <div class="l">Current Longest Stay</div>
-      <div style="margin-top:0.4rem;font-size:0.7rem;color:#C9D3C2;font-family:'Fake Receipt','Courier New',monospace;">${d.currentLongest.name}</div>
-      <div style="font-size:0.65rem;color:#83937C;">In since ${formatShortDateTime(parseBookingDate(d.currentLongest.bookDate))}</div>
+      <div style="margin-top:0.4rem;font-size:0.7rem;color:var(--text);font-family:'Fake Receipt','Courier New',monospace;">${d.currentLongest.name}</div>
+      <div style="font-size:0.65rem;color:var(--muted);">In since ${formatShortDateTime(parseBookingDate(d.currentLongest.bookDate))}</div>
     </div>` : ''}
   </div>
 
@@ -2363,7 +2367,7 @@ ${gaHead()}
     <tbody>
     ${d.frequentFlyers.map(f => `<tr data-name="${f.name.toLowerCase().replace(/"/g, '&quot;')}" data-bookings="${f.count}" data-charges="${f.charges.join(', ').toLowerCase().replace(/"/g, '&quot;')}">
       <td class="val">${f.name}</td>
-      <td style="color:#C3D6B8;text-align:center;">${f.count}</td>
+      <td style="color:var(--released);text-align:center;">${f.count}</td>
       <td style="font-size:0.7rem;">${f.charges.length ? f.charges.join(', ') : '<span class="dim">—</span>'}</td>
     </tr>`).join('')}
     ${d.frequentFlyers.length === 0 ? '<tr><td colspan="3" class="dim">No repeat bookings yet</td></tr>' : ''}
@@ -2373,11 +2377,11 @@ ${gaHead()}
   <h2>Busiest Release Times (from 48hr PDF)</h2>
   <div class="two-col">
     <div>
-      <p style="color:#83937C;font-size:0.7rem;margin-bottom:0.5rem;text-transform:uppercase;">Day of Week</p>
+      <p style="color:var(--muted);font-size:0.7rem;margin-bottom:0.5rem;text-transform:uppercase;">Day of Week</p>
       ${dayBar(d.relDays, maxRelDay)}
     </div>
     <div>
-      <p style="color:#83937C;font-size:0.7rem;margin-bottom:0.5rem;text-transform:uppercase;">Hour of Day</p>
+      <p style="color:var(--muted);font-size:0.7rem;margin-bottom:0.5rem;text-transform:uppercase;">Hour of Day</p>
       ${hourBar(d.relHours, maxRelHour)}
     </div>
   </div>
@@ -2385,11 +2389,11 @@ ${gaHead()}
   <h2>Busiest Booking Times (from live roster PDF)</h2>
   <div class="two-col">
     <div>
-      <p style="color:#83937C;font-size:0.7rem;margin-bottom:0.5rem;text-transform:uppercase;">Day of Week</p>
+      <p style="color:var(--muted);font-size:0.7rem;margin-bottom:0.5rem;text-transform:uppercase;">Day of Week</p>
       ${dayBar(d.bookDays, maxBookDay)}
     </div>
     <div>
-      <p style="color:#83937C;font-size:0.7rem;margin-bottom:0.5rem;text-transform:uppercase;">Hour of Day</p>
+      <p style="color:var(--muted);font-size:0.7rem;margin-bottom:0.5rem;text-transform:uppercase;">Hour of Day</p>
       ${hourBar(d.bookHours, maxBookHour)}
     </div>
   </div>

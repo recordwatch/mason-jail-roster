@@ -72,25 +72,25 @@ function linkAttrs(m) {
 }
 
 export const HUB_MAP_CSS = `
-    .map-card { background: #1B2A20; border: 1px solid #2E4433; border-radius: 6px; padding: 0.75rem; margin-bottom: 0.75rem; }
+    .map-card { background: var(--card); border: 1px solid var(--border); border-radius: 6px; padding: 0.75rem; margin-bottom: 0.75rem; }
     .wa-map { display: block; width: 100%; height: auto; }
-    .wa-map .county { fill: #24332A; stroke: #3A5240; stroke-width: 0.6; }
-    .wa-map a .county { fill: #3D5245; stroke: #121A15; stroke-width: 1; cursor: pointer; transition: fill 0.15s; }
-    .wa-map a.monitored .county { fill: #6E9461; }
-    .wa-map a:hover .county, .wa-map a:focus-visible .county, .wa-map a.is-active .county { fill: #A9BE9C; }
+    .wa-map .county { fill: var(--map-none); stroke: var(--map-none-edge); stroke-width: 0.6; }
+    .wa-map a .county { fill: var(--map-roster); stroke: var(--bg); stroke-width: 1; cursor: pointer; transition: fill 0.15s; }
+    .wa-map a.monitored .county { fill: var(--map-monitored); }
+    .wa-map a:hover .county, .wa-map a:focus-visible .county, .wa-map a.is-active .county { fill: var(--accent); }
     .wa-map a:focus { outline: none; }
-    .wa-map a:focus-visible .county { stroke: #E7EBDF; stroke-width: 2; }
-    .wa-map .marker { fill: #E7EBDF; stroke: #121A15; stroke-width: 2; cursor: pointer; }
-    .wa-map a:hover .marker, .wa-map a:focus-visible .marker { fill: #A9BE9C; }
-    .map-caption { min-height: 1.4em; margin-top: 0.5rem; font-size: 9pt; font-weight: 600; color: #E7EBDF; }
-    .map-caption .muted { font-weight: 400; color: #83937C; }
-    .map-legend { display: flex; flex-wrap: wrap; gap: 0.4rem 1rem; margin-top: 0.4rem; font-size: 0.65rem; color: #83937C; }
+    .wa-map a:focus-visible .county { stroke: var(--head); stroke-width: 2; }
+    .wa-map .marker { fill: var(--head); stroke: var(--bg); stroke-width: 2; cursor: pointer; }
+    .wa-map a:hover .marker, .wa-map a:focus-visible .marker { fill: var(--accent); }
+    .map-caption { min-height: 1.4em; margin-top: 0.5rem; font-size: 9pt; font-weight: 600; color: var(--head); }
+    .map-caption .muted { font-weight: 400; color: var(--muted); }
+    .map-legend { display: flex; flex-wrap: wrap; gap: 0.4rem 1rem; margin-top: 0.4rem; font-size: 0.65rem; color: var(--muted); }
     .map-legend span { display: inline-flex; align-items: center; gap: 0.35rem; }
     .swatch { width: 10px; height: 10px; border-radius: 2px; display: inline-block; }
     .monitor-list { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 0.4rem; margin-bottom: 0.75rem; }
-    .monitor-list a { display: block; padding: 0.55rem 0.75rem; background: #1B2A20; color: #C9D3C2; border: 1px solid #2E4433; border-radius: 6px; font-weight: 600; font-size: 8.5pt; }
-    .monitor-list a:hover, .monitor-list a.is-active { background: #547048; color: #E7EBDF; }
-    .section-label { font-size: 0.6rem; letter-spacing: 1.5px; text-transform: uppercase; color: #83937C; margin: 0.25rem 0 0.4rem; }`;
+    .monitor-list a { display: block; padding: 0.55rem 0.75rem; background: var(--card); color: var(--text); border: 1px solid var(--border); border-radius: 6px; font-weight: 600; font-size: 8.5pt; }
+    .monitor-list a:hover, .monitor-list a.is-active { background: var(--hover); color: var(--head); }
+    .section-label { font-size: 0.6rem; letter-spacing: 1.5px; text-transform: uppercase; color: var(--muted); margin: 0.25rem 0 0.4rem; }`;
 
 // The map (each monitored county is a link), a caption that names whatever
 // is hovered/focused, a legend, and a plain list of every monitor — the
@@ -130,10 +130,10 @@ export function renderHubMap() {
       </svg>
       <div class="map-caption" id="map-caption"><span class="muted">Select a county to open its jail monitor</span></div>
       <div class="map-legend">
-        <span><i class="swatch" style="background:#6E9461"></i>Actively monitored (${monitoredCounties} counties)</span>
-        <span><i class="swatch" style="background:#3D5245;border:1px solid #4A6352"></i>County roster link (${rosterCounties} counties)</span>
-        <span><i class="swatch" style="background:#24332A;border:1px solid #3A5240"></i>No online roster</span>
-        <span><i class="swatch" style="background:#E7EBDF;border-radius:50%"></i>Nisqually tribal jail (monitored)</span>
+        <span><i class="swatch" style="background:var(--map-monitored)"></i>Actively monitored (${monitoredCounties} counties)</span>
+        <span><i class="swatch" style="background:var(--map-roster);border:1px solid var(--map-roster-edge)"></i>County roster link (${rosterCounties} counties)</span>
+        <span><i class="swatch" style="background:var(--map-none);border:1px solid var(--map-none-edge)"></i>No online roster</span>
+        <span><i class="swatch" style="background:var(--head);border-radius:50%"></i>Nisqually tribal jail (monitored)</span>
       </div>
     </div>
     <div class="section-label">All monitors</div>
