@@ -19,7 +19,7 @@ export const ADMIN_KEY = process.env.ADMIN_KEY;
 // test/hub-totals.test.js enforces it so the list can't silently drift.
 export const SIBLING_MONITORS = [
   { name: 'kitsap',       base: 'https://recordwatch.github.io/ksco-scraper/data' },
-  { name: 'pierce',       base: 'https://recordwatch.github.io/pierce-jail-roster/data' },
+  { name: 'pierce',       base: 'https://pierce.wajaildata.org/data' },
   { name: 'thurston',     base: 'https://recordwatch.github.io/thurston-jail-roster/data' },
   { name: 'whatcom',      base: 'https://recordwatch.github.io/whatcom-jail-monitor/data' },
   { name: 'clallam',      base: 'https://recordwatch.github.io/clallam-jail-monitor/data' },

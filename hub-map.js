@@ -19,7 +19,7 @@ const MAP = JSON.parse(fs.readFileSync(path.join(__dirname, 'wa-counties.json'),
 export const HUB_MONITORS = [
   { county: 'Mason',        label: 'Mason County',        url: '/api/history', internal: true },
   { county: 'Kitsap',       label: 'Kitsap County',       url: 'https://recordwatch.github.io/ksco-scraper/' },
-  { county: 'Pierce',       label: 'Pierce County',       url: 'https://recordwatch.github.io/pierce-jail-roster/' },
+  { county: 'Pierce',       label: 'Pierce County',       url: 'https://pierce.wajaildata.org/' },
   { county: 'Thurston',     label: 'Thurston County',     url: 'https://recordwatch.github.io/thurston-jail-roster/' },
   { county: 'Whatcom',      label: 'Whatcom County',      url: 'https://recordwatch.github.io/whatcom-jail-monitor/' },
   { county: 'Grays Harbor', label: 'Grays Harbor County', url: 'https://recordwatch.github.io/grays-harbor-jail-monitor/' },
