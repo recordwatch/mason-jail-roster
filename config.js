@@ -22,7 +22,7 @@ export const SIBLING_MONITORS = [
   { name: 'pierce',       base: 'https://pierce.wajaildata.org/data' },
   { name: 'thurston',     base: 'https://recordwatch.github.io/thurston-jail-roster/data' },
   { name: 'whatcom',      base: 'https://recordwatch.github.io/whatcom-jail-monitor/data' },
-  { name: 'clallam',      base: 'https://recordwatch.github.io/clallam-jail-monitor/data' },
+  { name: 'clallam',      base: 'https://clallam.wajaildata.org/data' },
   { name: 'grays-harbor', base: 'https://recordwatch.github.io/grays-harbor-jail-monitor/data' },
   { name: 'jefferson',    base: 'https://recordwatch.github.io/jefferson-jail-roster/data' },
   // Pacific and Wahkiakum publish status.json but no change_log.json, so
