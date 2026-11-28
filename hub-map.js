@@ -22,7 +22,7 @@ export const HUB_MONITORS = [
   { county: 'Pierce',       label: 'Pierce County',       url: 'https://pierce.wajaildata.org/' },
   { county: 'Thurston',     label: 'Thurston County',     url: 'https://recordwatch.github.io/thurston-jail-roster/' },
   { county: 'Whatcom',      label: 'Whatcom County',      url: 'https://recordwatch.github.io/whatcom-jail-monitor/' },
-  { county: 'Grays Harbor', label: 'Grays Harbor County', url: 'https://recordwatch.github.io/grays-harbor-jail-monitor/' },
+  { county: 'Grays Harbor', label: 'Grays Harbor County', url: 'https://graysharbor.wajaildata.org/' },
   { county: 'Clallam',      label: 'Clallam County',      url: 'https://clallam.wajaildata.org/' },
   { county: 'King',         label: 'King County',         url: 'https://recordwatch.github.io/king-county/' },
   { county: 'Jefferson',    label: 'Jefferson County',    url: 'https://recordwatch.github.io/jefferson-jail-roster/' },
